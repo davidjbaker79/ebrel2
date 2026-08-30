@@ -1,0 +1,22 @@
+Package: ebrel2
+Type: Package
+Title: Ebrel2 - Spatial prioritisation for nature recovery and improvement
+Version: 0.1.0
+Authors@R: 
+    person("David", "Baker", , "d.baker2@exeter.ac.uk", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-0466-8222"))
+Description: R package for setting up and running a spatial prioritisation for
+    habitat creation with multiple options and improvement of existing habitat. 
+    For technical details on the basic Ebrel model, see 10.1111/1365-2664.70144, 
+    and for further details on Ebrel2 see the vignette.
+LazyData: false
+License: GPL-3 + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Imports: 
+  Rcpp,
+  gstat,
+  terra
+LinkingTo: 
+  Rcpp
+Config/roxygen2/version: 8.1.0

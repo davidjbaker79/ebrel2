@@ -9,11 +9,3 @@ generate_X0_CI_R <- function(U, n_actions, dim_x, dim_y, base_prob, seed) {
     .Call(`_ebrel2_generate_X0_CI_R`, U, n_actions, dim_x, dim_y, base_prob, seed)
 }
 
-ebrel_omp_thread_limit <- function() {
-    .Call(`_ebrel2_ebrel_omp_thread_limit`)
-}
-
-ebrel_omp_for_threads <- function() {
-    .Call(`_ebrel2_ebrel_omp_for_threads`)
-}
-

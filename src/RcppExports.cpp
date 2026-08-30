@@ -51,32 +51,10 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// ebrel_omp_thread_limit
-int ebrel_omp_thread_limit();
-RcppExport SEXP _ebrel2_ebrel_omp_thread_limit() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(ebrel_omp_thread_limit());
-    return rcpp_result_gen;
-END_RCPP
-}
-// ebrel_omp_for_threads
-int ebrel_omp_for_threads();
-RcppExport SEXP _ebrel2_ebrel_omp_for_threads() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(ebrel_omp_for_threads());
-    return rcpp_result_gen;
-END_RCPP
-}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_ebrel2_run_ebrel_cpp", (DL_FUNC) &_ebrel2_run_ebrel_cpp, 15},
     {"_ebrel2_generate_X0_CI_R", (DL_FUNC) &_ebrel2_generate_X0_CI_R, 6},
-    {"_ebrel2_ebrel_omp_thread_limit", (DL_FUNC) &_ebrel2_ebrel_omp_thread_limit, 0},
-    {"_ebrel2_ebrel_omp_for_threads", (DL_FUNC) &_ebrel2_ebrel_omp_for_threads, 0},
     {NULL, NULL, 0}
 };
 

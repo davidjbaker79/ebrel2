@@ -17,7 +17,7 @@ prepare_ebrel_r_to_cpp(
 )
 }
 \arguments{
-\item{E_rast}{A single-layer \link[terra:SpatRaster]{terra::SpatRaster} containing the existing
+\item{E_rast}{A single-layer \link[terra:SpatRaster-class]{terra::SpatRaster} containing the existing
 habitat class in each landscape cell. Values must use the internal
 zero-indexed habitat coding:
 \describe{
@@ -25,13 +25,13 @@ zero-indexed habitat coding:
 \item{\code{0:(n_habitats - 1)}}{Existing habitat class.}
 }}
 
-\item{C_rast}{A multilayer \link[terra:SpatRaster]{terra::SpatRaster} containing one cost layer per
+\item{C_rast}{A multilayer \link[terra:SpatRaster-class]{terra::SpatRaster} containing one cost layer per
 action. The first \code{n_actions - 1} layers represent habitat creation
 actions and the final layer represents habitat improvement. Cell-action
 combinations with costs equal or approximately equal to the configured
 sentinel value are interpreted as unavailable by downstream C++ code.}
 
-\item{SD_rast}{A multilayer \link[terra:SpatRaster]{terra::SpatRaster} containing one baseline
+\item{SD_rast}{A multilayer \link[terra:SpatRaster-class]{terra::SpatRaster} containing one baseline
 species-distribution layer per species. Its geometry must match \code{E_rast}
 and \code{C_rast}.}
 
@@ -53,7 +53,7 @@ based on
 \deqn{w = \exp(-\sigma d),}
 where (d) is distance from the relevant species distribution.}
 
-\item{LM_rast}{A single-layer \link[terra:SpatRaster]{terra::SpatRaster} containing the binary land
+\item{LM_rast}{A single-layer \link[terra:SpatRaster-class]{terra::SpatRaster} containing the binary land
 mask. Values must be \code{0} or \code{1}, and its geometry must match the other
 raster inputs.}
 }

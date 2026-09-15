@@ -90,10 +90,16 @@ void apply_run_options(const Rcpp::List& opt, RunEBRELOptions& options) {
     options.improve_eps = Rcpp::as<double>(opt["improve_eps"]);
   if (opt.containsElementNamed("rng_seed"))
     options.rng_seed = Rcpp::as<int>(opt["rng_seed"]);
-  if (opt.containsElementNamed("write_every"))
-    options.write_every = Rcpp::as<int>(opt["write_every"]);
+  if (opt.containsElementNamed("trace_every"))
+    options.trace_every = Rcpp::as<int>(opt["trace_every"]);
   if (opt.containsElementNamed("trace_file"))
     options.trace_file = Rcpp::as<std::string>(opt["trace_file"]);
+  if (opt.containsElementNamed("checkpoint_every"))
+    options.checkpoint_every = Rcpp::as<int>(opt["checkpoint_every"]);
+  if (opt.containsElementNamed("checkpoint_file"))
+    options.checkpoint_file = Rcpp::as<std::string>(opt["checkpoint_file"]);
+  if (opt.containsElementNamed("restart_file"))
+    options.restart_file = Rcpp::as<std::string>(opt["restart_file"]);
   if (opt.containsElementNamed("verbose"))
     options.verbose = Rcpp::as<bool>(opt["verbose"]);
 }
@@ -610,4 +616,80 @@ Rcpp::IntegerVector generate_X0_CI_R(const std::vector<uint8_t>& U,
   for (std::size_t i = 0; i < x0.size(); ++i) out[i] = static_cast<int>(x0[i]);
 
   return out;
+}
+
+// [[Rcpp::export]]
+Rcpp::List read_sa_checkpoint_R(
+    const std::string& checkpoint_file
+) {
+  
+  SACheckpoint cp =
+    read_sa_checkpoint(checkpoint_file);
+  
+  
+  Rcpp::List out;
+  
+  Rcpp::IntegerVector curr(
+      cp.curr.begin(),
+      cp.curr.end()
+  );
+  
+  Rcpp::IntegerVector best(
+      cp.best.begin(),
+      cp.best.end()
+  );
+  
+  out["iteration"] = cp.iteration;
+  
+  out["dim_x"] = cp.dim_x;
+  out["dim_y"] = cp.dim_y;
+  out["n_actions"] = cp.n_actions;
+  out["n_species"] = cp.n_species;
+  out["n_habitats"] = cp.n_habitats;
+  out["n_iterations"] = cp.n_iterations;
+  
+  out["curr"] = curr;
+  out["curr_eval"] = cp.curr_eval;
+  out["improve_count"] = cp.improve_count;
+  
+  out["best"] = best;
+  out["best_score"] = cp.best_score;
+  out["best_Fx"] = cp.best_Fx;
+  
+  out["g_best"] = cp.g_best;
+  out["g_create_best"] = cp.g_create_best;
+  out["g_improve_best"] = cp.g_improve_best;
+  
+  out["attempted_total"] = cp.attempted_total;
+  out["accepted_total"] = cp.accepted_total;
+  
+  out["attempted_in_win"] = cp.attempted_in_win;
+  out["accepted_in_win"] = cp.accepted_in_win;
+  
+  out["no_improve"] = cp.no_improve;
+  out["last_best"] = cp.last_best;
+  
+  out["uphill_attempted_in_win"] =
+    cp.uphill_attempted_in_win;
+  
+  out["uphill_accepted_in_win"] =
+    cp.uphill_accepted_in_win;
+  
+  out["temp_curr"] = cp.temp_curr;
+  
+  out["iter_ms_total"] =
+    static_cast<double>(cp.iter_ms_total);
+  
+  out["iter_count"] = cp.iter_count;
+  
+  out["H_history"] = cp.H_history;
+  out["F_history"] = cp.F_history;
+  out["F1_history"] = cp.F1_history;
+  out["F2_history"] = cp.F2_history;
+  
+  out["acc_rate_trace"] =
+    cp.acc_rate_trace;
+  
+  return out;
+ 
 }

@@ -9,3 +9,7 @@ generate_X0_CI_R <- function(U, n_actions, dim_x, dim_y, base_prob, seed) {
     .Call(`_ebrel2_generate_X0_CI_R`, U, n_actions, dim_x, dim_y, base_prob, seed)
 }
 
+read_sa_checkpoint_R <- function(checkpoint_file) {
+    .Call(`_ebrel2_read_sa_checkpoint_R`, checkpoint_file)
+}
+

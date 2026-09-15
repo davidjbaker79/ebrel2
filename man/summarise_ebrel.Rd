@@ -30,8 +30,8 @@ The vector must be indexed by action ID plus one, because EBREL action IDs
 are zero-based. For example, action IDs \code{0}, \code{1}, and \code{2}
 would correspond to:
 \preformatted{
-c("Create habitat 1", "Create habitat 2", "Improve habitat")
-}
+  c("Create habitat 1", "Create habitat 2", "Improve habitat")
+  }
 Missing labels are replaced with generic labels such as \code{"Action 2"}.}
 
 \item{shortfall_tolerance}{Numeric value defining when a species target is

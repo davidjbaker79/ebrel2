@@ -11,10 +11,5 @@ R package for setting up and running a spatial prioritisation for habitat creati
 \author{
 \strong{Maintainer}: David Baker \email{d.baker2@exeter.ac.uk} (\href{https://orcid.org/0000-0002-0466-8222}{ORCID})
 
-Authors:
-\itemize{
-  \item David Baker \email{d.baker2@exeter.ac.uk} (\href{https://orcid.org/0000-0002-0466-8222}{ORCID})
-}
-
 }
 \keyword{internal}

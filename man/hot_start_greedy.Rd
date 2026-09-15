@@ -22,10 +22,10 @@ hot_start_greedy(
 \item{ebrel_sim_data}{A named list containing the EBREL input data. It must
 include:
 \describe{
-\item{\code{SD}}{A multilayer \link[terra:SpatRaster]{terra::SpatRaster} containing one binary
+\item{\code{SD}}{A multilayer \link[terra:SpatRaster-class]{terra::SpatRaster} containing one binary
 current-distribution layer per species. Occupied cells must be coded
 as \code{1}.}
-\item{\code{C}}{A multilayer \link[terra:SpatRaster]{terra::SpatRaster} containing one cost layer
+\item{\code{C}}{A multilayer \link[terra:SpatRaster-class]{terra::SpatRaster} containing one cost layer
 per action. The final layer is assumed to represent habitat
 improvement; preceding layers represent habitat creation actions.}
 \item{\code{D}}{A numeric vector of species dispersal distances, with one
@@ -90,7 +90,7 @@ preservation floor. Defaults to \code{TRUE}.}
 selection, and pruning ties. Defaults to \code{123}.}
 }
 \value{
-A single-layer \link[terra:SpatRaster]{terra::SpatRaster} named \code{"X0"} containing the
+A single-layer \link[terra:SpatRaster-class]{terra::SpatRaster} named \code{"X0"} containing the
 initial action configuration. Values use the internal EBREL coding:
 \describe{
 \item{\code{-1}}{No action selected.}

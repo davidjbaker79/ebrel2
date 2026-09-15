@@ -51,10 +51,22 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// read_sa_checkpoint_R
+Rcpp::List read_sa_checkpoint_R(const std::string& checkpoint_file);
+RcppExport SEXP _ebrel2_read_sa_checkpoint_R(SEXP checkpoint_fileSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const std::string& >::type checkpoint_file(checkpoint_fileSEXP);
+    rcpp_result_gen = Rcpp::wrap(read_sa_checkpoint_R(checkpoint_file));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_ebrel2_run_ebrel_cpp", (DL_FUNC) &_ebrel2_run_ebrel_cpp, 15},
     {"_ebrel2_generate_X0_CI_R", (DL_FUNC) &_ebrel2_generate_X0_CI_R, 6},
+    {"_ebrel2_read_sa_checkpoint_R", (DL_FUNC) &_ebrel2_read_sa_checkpoint_R, 1},
     {NULL, NULL, 0}
 };
 

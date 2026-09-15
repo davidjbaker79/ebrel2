@@ -19,7 +19,7 @@ run_ebrel_R(
 )
 }
 \arguments{
-\item{E}{A single-layer \link[terra:SpatRaster]{terra::SpatRaster} containing the existing habitat
+\item{E}{A single-layer \link[terra:SpatRaster-class]{terra::SpatRaster} containing the existing habitat
 class in each cell. Values must use the internal zero-indexed habitat
 coding:
 \describe{
@@ -27,13 +27,13 @@ coding:
 \item{\code{0:(n_habitats - 1)}}{Existing habitat class.}
 }}
 
-\item{C}{A multilayer \link[terra:SpatRaster]{terra::SpatRaster} containing the cost of applying
+\item{C}{A multilayer \link[terra:SpatRaster-class]{terra::SpatRaster} containing the cost of applying
 each action in each cell. It must contain one layer per action. The first
 \code{n_actions - 1} layers represent habitat creation actions and the final
 layer represents habitat improvement. Costs approximately equal to
 \code{sentinel} are treated as unavailable actions.}
 
-\item{SD}{A multilayer \link[terra:SpatRaster]{terra::SpatRaster} containing one species
+\item{SD}{A multilayer \link[terra:SpatRaster-class]{terra::SpatRaster} containing one species
 distribution layer per species. Raster geometry must match \code{C}.}
 
 \item{D}{A numeric or integer vector containing one dispersal-distance value
@@ -51,10 +51,10 @@ Its length must equal the number of layers in \code{SD}.}
 action. Its length must equal the number of layers in \code{C}. The final value
 gives the contribution weight assigned to habitat improvement.}
 
-\item{LM}{A single-layer \link[terra:SpatRaster]{terra::SpatRaster} containing the binary land mask.
+\item{LM}{A single-layer \link[terra:SpatRaster-class]{terra::SpatRaster} containing the binary land mask.
 Values must be \code{0} or \code{1}, and raster geometry must match \code{C}.}
 
-\item{X0}{An optional single-layer \link[terra:SpatRaster]{terra::SpatRaster} containing the initial
+\item{X0}{An optional single-layer \link[terra:SpatRaster-class]{terra::SpatRaster} containing the initial
 action configuration. Raster geometry must match \code{C}. Values must use the
 internal EBREL action coding:
 \describe{
@@ -74,7 +74,7 @@ combinations in \code{C}. Defaults to \code{1e10}.}
 \value{
 A named list containing optimisation results and diagnostics returned
 by the C++ runner. The \code{X_best} element is reconstructed as a single-layer
-\link[terra:SpatRaster]{terra::SpatRaster} with the same geometry as \code{E}. Its values use the
+\link[terra:SpatRaster-class]{terra::SpatRaster} with the same geometry as \code{E}. Its values use the
 internal EBREL action coding:
 \describe{
 \item{\code{-1}}{No action selected.}
@@ -94,7 +94,7 @@ from raster-based model inputs.
 The function validates and aligns the supplied rasters, extracts their values
 into the flat vector layouts expected by the C++ implementation, runs the
 optimisation, and reconstructs the best solution as a
-\link[terra:SpatRaster]{terra::SpatRaster}.
+\link[terra:SpatRaster-class]{terra::SpatRaster}.
 
 An optional initial solution may be supplied through \code{X0}. When \code{X0} is
 \code{NULL}, an initial solution is generated internally by the C++ optimiser.

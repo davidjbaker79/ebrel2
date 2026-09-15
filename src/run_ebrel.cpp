@@ -184,11 +184,14 @@ RunEBRELResult run_ebrel(const RunEBRELInput& in,
     opt.acceptance_thres,
     opt.iter_no_improve,
     opt.improve_eps,
-    opt.write_every,
+    opt.trace_every,
     opt.trace_file,
+    opt.checkpoint_every,
+    opt.checkpoint_file,
+    opt.restart_file,
     opt.verbose
-  );
-
+   );
+  
   RunEBRELResult out;
   out.X_best         = std::move(sa.X_best);
   out.H_best         = sa.H_best;
@@ -196,12 +199,12 @@ RunEBRELResult run_ebrel(const RunEBRELInput& in,
   out.F_trace        = std::move(sa.F_trace);
   out.F1_trace       = std::move(sa.F1_trace);
   out.F2_trace       = std::move(sa.F2_trace);
-  out.iterations_run = static_cast<int>(out.H_trace.size());
+  out.iterations_run = sa.diag.iterations_completed;
   out.g_best         = std::move(sa.g_best);
   out.g_create_best  = std::move(sa.g_create_best);
-  out.g_improve_best  = std::move(sa.g_improve_best);
+  out.g_improve_best = std::move(sa.g_improve_best);
 
-  // --- NEW: diagnostics ---
+  // Diagnostics
   out.acc_rate_trace   = std::move(sa.diag.acceptance_rate_trace);
   out.early_stop_iter  = sa.diag.early_stop_iter;
 

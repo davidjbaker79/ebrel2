@@ -11,21 +11,17 @@ export(vector_to_spatraster)
 import(gstat)
 import(terra)
 importFrom(Rcpp,evalCpp)
-importFrom(gstat,
-  gstat,
-  vgm
-)
-importFrom(terra,
-  app,
-  focal,
-  global,
-  ifel,
-  minmax,
-  names,
-  ncell,
-  rast,
-  setValues,
-  values,
-  which.max
-)
+importFrom(gstat,gstat)
+importFrom(gstat,vgm)
+importFrom(terra,app)
+importFrom(terra,focal)
+importFrom(terra,global)
+importFrom(terra,ifel)
+importFrom(terra,minmax)
+importFrom(terra,names)
+importFrom(terra,ncell)
+importFrom(terra,rast)
+importFrom(terra,setValues)
+importFrom(terra,values)
+importFrom(terra,which.max)
 useDynLib(ebrel2, .registration = TRUE)

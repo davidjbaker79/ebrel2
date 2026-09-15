@@ -36,8 +36,11 @@ struct RunEBRELOptions {
   int iter_no_improve     = 1000;  // consecutive iters with no meaningful improvement
   double improve_eps      = 1e-6;  // relative improvement needed to reset patience
   int rng_seed            = -1;
-  int  write_every        = 0;     // 0 = disabled
-  std::string trace_file  = ""; // empty = disabled
+  int  trace_every        = 0;     // 0 = disabled
+  std::string trace_file  = "";    // empty = disabled
+  int  checkpoint_every   = 0;     //0 = disabled
+  std::string checkpoint_file = ""; // where checkpoints are written
+  std::string restart_file = ""; // empty = new run
   bool verbose            = false;
 };
 

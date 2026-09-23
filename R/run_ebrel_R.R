@@ -5,8 +5,8 @@
 #'
 #' The function validates and aligns the supplied rasters, extracts their values
 #' into the flat vector layouts expected by the C++ implementation, runs the
-#' optimisation, and reconstructs the best solution as a
-#' [terra::SpatRaster].
+#' optimisation, and returns the best solution as an integer vector in raster
+#' cell order.
 #'
 #' An optional initial solution may be supplied through `X0`. When `X0` is
 #' `NULL`, an initial solution is generated internally by the C++ optimiser.
@@ -64,18 +64,17 @@
 #'   combinations in `C`. Defaults to `1e10`.
 #'
 #' @return A named list containing optimisation results and diagnostics returned
-#'   by the C++ runner. The `X_best` element is reconstructed as a single-layer
-#'   [terra::SpatRaster] with the same geometry as `E`. Its values use the
-#'   internal EBREL action coding:
+#'   by the C++ runner. The `X_best` element is an integer vector containing one
+#'   selected action code per landscape cell, in raster cell order. Values use
+#'   the internal EBREL action coding:
 #'   \describe{
 #'     \item{`-1`}{No action selected.}
 #'     \item{`0:(n_actions - 1)`}{Zero-indexed selected action.}
 #'   }
 #'
-#'   Other elements may include the initial solution, objective value,
-#'   species-target contributions, objective-component traces, acceptance
-#'   diagnostics, iteration counts, objective scaling, and temperature-tuning
-#'   diagnostics.
+#'   `X_best` can be converted back to a [terra::SpatRaster] using `E` as a
+#'   template:
+#'   `X_best_r <- terra::rast(E); terra::values(X_best_r) <- result$X_best`.
 #'
 #' @details
 #' Raster values are flattened in action-major or species-major order as
@@ -116,8 +115,10 @@
 #'   )
 #' )
 #'
-#' terra::plot(result$X_best)
-#'
+#' X_best_r <- terra::rast(ebrel_sim_data$E)
+#' terra::values(X_best_r) <- result$X_best
+#' terra::plot(X_best_r)
+#' 
 #' X0 <- hot_start_greedy(ebrel_sim_data)
 #'
 #' hot_result <- run_ebrel_R(
@@ -197,9 +198,6 @@ run_ebrel_R <- function(E,
   if (length(O) != n_species) {
     stop("O length must equal n_species")
   }
-
-  # ---- Template for reconstructed output ----
-  tp <- E
   
   # ---- Extract & flatten ---
   E_values  <- as.integer(terra::values(E, mat = FALSE))
@@ -286,11 +284,8 @@ run_ebrel_R <- function(E,
     opt = opt
   )
 
-  # --- Reconstruct raster ---
-  X_best <- terra::rast(tp)
-  terra::values(X_best) <- res$X_best
-  names(X_best) <- "X_best"
-
-  res$X_best <- X_best
+  # --- Return results---
+  res$X_best <- as.integer(res$X_best)
   res
+  
 }

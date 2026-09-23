@@ -73,18 +73,17 @@ combinations in \code{C}. Defaults to \code{1e10}.}
 }
 \value{
 A named list containing optimisation results and diagnostics returned
-by the C++ runner. The \code{X_best} element is reconstructed as a single-layer
-\link[terra:SpatRaster-class]{terra::SpatRaster} with the same geometry as \code{E}. Its values use the
-internal EBREL action coding:
+by the C++ runner. The \code{X_best} element is an integer vector containing one
+selected action code per landscape cell, in raster cell order. Values use
+the internal EBREL action coding:
 \describe{
 \item{\code{-1}}{No action selected.}
 \item{\code{0:(n_actions - 1)}}{Zero-indexed selected action.}
 }
 
-Other elements may include the initial solution, objective value,
-species-target contributions, objective-component traces, acceptance
-diagnostics, iteration counts, objective scaling, and temperature-tuning
-diagnostics.
+\code{X_best} can be converted back to a \link[terra:SpatRaster-class]{terra::SpatRaster} using \code{E} as a
+template:
+\verb{X_best_r <- terra::rast(E); terra::values(X_best_r) <- result$X_best}.
 }
 \description{
 High-level user-facing wrapper for running an EBREL spatial optimisation
@@ -93,8 +92,8 @@ from raster-based model inputs.
 \details{
 The function validates and aligns the supplied rasters, extracts their values
 into the flat vector layouts expected by the C++ implementation, runs the
-optimisation, and reconstructs the best solution as a
-\link[terra:SpatRaster-class]{terra::SpatRaster}.
+optimisation, and returns the best solution as an integer vector in raster
+cell order.
 
 An optional initial solution may be supplied through \code{X0}. When \code{X0} is
 \code{NULL}, an initial solution is generated internally by the C++ optimiser.
@@ -135,7 +134,9 @@ result <- run_ebrel_R(
   )
 )
 
-terra::plot(result$X_best)
+X_best_r <- terra::rast(ebrel_sim_data$E)
+terra::values(X_best_r) <- result$X_best
+terra::plot(X_best_r)
 
 X0 <- hot_start_greedy(ebrel_sim_data)
 

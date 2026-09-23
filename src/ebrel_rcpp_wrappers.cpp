@@ -298,6 +298,11 @@ Rcpp::List run_ebrel_cpp(
   
   // ---- Apply all options before any calibration/tuning that depends on them ----
   apply_run_options(opt, built.opt);
+  
+  // Check if restart
+  const bool is_restart = !built.opt.restart_file.empty();
+  
+  // Parse temperature options
   const TempTuneOptions tune = parse_temp_tune_opts(opt);
   
   // ---- RunEBRELInput must contain these new fields after the refactor: ----
@@ -329,7 +334,7 @@ Rcpp::List run_ebrel_cpp(
     : 0.0;
 
   // ---- Generate X0 only when none was supplied ----
-  if (built.in.X0.empty()) {
+  if (!is_restart && built.in.X0.empty()) {
     const int x0_seed =
       (built.opt.rng_seed >= 0)
     ? built.opt.rng_seed
@@ -346,10 +351,12 @@ Rcpp::List run_ebrel_cpp(
   }
   
   // Whether supplied or generated, initialise derived X0 state here.
-  built.in.improve_count = initialise_improve_count(
-    built.in.X0,
-    built.in.species_plan
-  );
+  if (!is_restart) {
+    built.in.improve_count = initialise_improve_count(
+      built.in.X0,
+      built.in.species_plan
+    );
+  }
   
   // ---- Objective-scale calibration ----
   // This intentionally does not use X0. Each sample is an addition to an
@@ -453,21 +460,48 @@ Rcpp::List run_ebrel_cpp(
       };
     };
     
-    const ObjectiveScalingCalibration calibration =
-      calibrate_objective_scales(
-        built.in.U,
-        X_calibration,
-        built.in.n_actions,
-        built.in.dim_x,
-        built.in.dim_y,
-        n_scale_samples,
-        evaluate_raw,
-        calibration_rng
-      );
+      
+    // calculate objective scales normally
+    ObjectiveScalingCalibration calibration;
+    Rcpp::List calibration_diag;
     
-    built.in.objective_scales = calibration.scales;
+    if (!is_restart) {
+      
+      calibration =
+        calibrate_objective_scales(
+          built.in.U,
+          X_calibration,
+          built.in.n_actions,
+          built.in.dim_x,
+          built.in.dim_y,
+          n_scale_samples,
+          evaluate_raw,
+          calibration_rng
+        );
+      
+      built.in.objective_scales = calibration.scales;
+      
+      calibration_diag =
+        as_r_calibration(calibration);
+      
+    } else {
+      
+      // Placeholder values only.
+      // simulated_annealing() will overwrite these from the checkpoint
+      // before any candidate evaluation occurs.
+      built.in.objective_scales.cost   = 1.0;
+      built.in.objective_scales.config = 1.0;
+      built.in.objective_scales.target = 1.0;
+      
+      calibration_diag =
+        Rcpp::List::create(
+          Rcpp::Named("recalibrated") = false,
+          Rcpp::Named("restored_from_checkpoint") = true
+        );
+      
+    }
     
-    if (built.opt.verbose) {
+    if (built.opt.verbose && !is_restart) {
       std::cout
       << "[objective calibration]"
       << " scale_cost=" << calibration.scales.cost
@@ -486,10 +520,11 @@ Rcpp::List run_ebrel_cpp(
   
     // ---- Optional tuning of initial temperature ----
     Rcpp::List tune_diag = Rcpp::List::create(
-      Rcpp::Named("enabled") = false
+      Rcpp::Named("enabled") = false,
+      Rcpp::Named("skipped_on_restart") = is_restart
     );
     
-    if (tune.enabled) {
+    if (tune.enabled && !is_restart) {
       // The temperature tuner must accept user weights and fixed objective
       // scales, and combine them exactly as the SA loop does.
       const InitTempResult t0 = estimate_initial_temperature_benameur_cpp(
@@ -539,6 +574,7 @@ Rcpp::List run_ebrel_cpp(
       
       tune_diag = Rcpp::List::create(
         Rcpp::Named("enabled") = true,
+        Rcpp::Named("skipped_on_restart") = false,
         Rcpp::Named("T0") = t0.T0,
         Rcpp::Named("chi_hat_final") = t0.diag.chi_hat_final,
         Rcpp::Named("chi0") = t0.diag.chi0,
@@ -572,6 +608,7 @@ Rcpp::List run_ebrel_cpp(
       built.in.n_actions
     );
     
+    // --- Return
     return Rcpp::List::create(
       Rcpp::Named("X0") = X0_iv,
       Rcpp::Named("U") = U_iv,
@@ -597,7 +634,8 @@ Rcpp::List run_ebrel_cpp(
         Rcpp::Named("beta") = built.in.beta,
         Rcpp::Named("gamma") = built.in.gamma
       ),
-      Rcpp::Named("objective_calibration") = as_r_calibration(calibration),
+      Rcpp::Named("objective_calibration") =
+        calibration_diag,
       Rcpp::Named("temperature_tuning") = tune_diag
     );
 }

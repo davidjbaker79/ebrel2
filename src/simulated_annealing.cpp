@@ -196,7 +196,7 @@ void write_sa_checkpoint(
   const std::uint32_t magic =
     0x45425232; // "EBR2"
   
-  const std::uint32_t version = 1;
+  const std::uint32_t version = 2;
   
   write_binary(out, magic);
   write_binary(out, version);
@@ -208,6 +208,11 @@ void write_sa_checkpoint(
   write_binary(out, cp.n_species);
   write_binary(out, cp.n_habitats);
   write_binary(out, cp.n_iterations);
+  
+  // Objective scaling
+  write_binary(out, cp.scale_cost);
+  write_binary(out, cp.scale_config);
+  write_binary(out, cp.scale_target);
   
   // Main state
   write_binary(out, cp.iteration);
@@ -328,7 +333,7 @@ SACheckpoint read_sa_checkpoint(
     );
   }
   
-  if (version != 1) {
+  if (version != 2) {
     throw std::runtime_error(
         "Unsupported SA checkpoint version: " +
           std::to_string(version)
@@ -343,6 +348,11 @@ SACheckpoint read_sa_checkpoint(
   read_binary(in, cp.n_species);
   read_binary(in, cp.n_habitats);
   read_binary(in, cp.n_iterations);
+  
+  // Objective scaling
+  read_binary(in, cp.scale_cost);
+  read_binary(in, cp.scale_config);
+  read_binary(in, cp.scale_target);
   
   // Main state
   read_binary(in, cp.iteration);
@@ -615,9 +625,11 @@ SAResult simulated_annealing(
     // RESTART
     // =========================================
     
+    // Load checkpoint data
     SACheckpoint cp =
       read_sa_checkpoint(restart_file);
     
+  
     if (
         cp.dim_x != dim_x ||
           cp.dim_y != dim_y ||
@@ -630,8 +642,15 @@ SAResult simulated_annealing(
       );
     }
     
+    // Restore objective scaling used by the original run
+    scale_cost   = cp.scale_cost;
+    scale_config = cp.scale_config;
+    scale_target = cp.scale_target;
+    
+    // Restart iterations
     start_iter = cp.iteration;
     
+    // Evaluations
     curr          = std::move(cp.curr);
     curr_eval     = cp.curr_eval;
     improve_count = std::move(cp.improve_count);
@@ -1024,6 +1043,11 @@ SAResult simulated_annealing(
       cp.n_species = n_species;
       cp.n_habitats = n_habitats;
       cp.n_iterations = n_iterations;
+      
+      // Objective scaling
+      cp.scale_cost   = scale_cost;
+      cp.scale_config = scale_config;
+      cp.scale_target = scale_target;
       
       // Main state
       cp.iteration = z + 1;

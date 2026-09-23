@@ -106,7 +106,7 @@ SAResult simulated_annealing(
 
 struct SACheckpoint {
   
-  uint32_t version = 1;
+  uint32_t version = 2;
   
   int dim_x = 0;
   int dim_y = 0;
@@ -131,6 +131,11 @@ struct SACheckpoint {
   std::vector<double> g_best;
   std::vector<double> g_create_best;
   std::vector<double> g_improve_best;
+  
+  // Scaling parameters
+  double scale_cost;
+  double scale_config;
+  double scale_target;
   
   // Acceptance / stopping state
   int attempted_total = 0;

@@ -28,6 +28,9 @@ struct SADiagnostics {
 struct SAResult {
   std::vector<int8_t> X_best;   // flattened [n_cells]
   double H_best;                // best objective
+  double F_best;
+  double F1_best;
+  double F2_best;
   std::vector<double> H_trace;  // candidate H evaluations
   std::vector<double> F_trace;  // optional Fx trace from compute_H
   std::vector<double> F1_trace; // optional F1 trace
@@ -127,6 +130,8 @@ struct SACheckpoint {
   std::vector<int8_t> best;
   double best_score = 0.0;
   double best_Fx = 0.0;
+  double best_F1 = 0.0;
+  double best_F2 = 0.0;
   
   std::vector<double> g_best;
   std::vector<double> g_create_best;

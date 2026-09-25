@@ -538,6 +538,8 @@ SAResult simulated_annealing(
   
   double best_score;
   double best_Fx;
+  double best_F1;
+  double best_F2;
   double curr_eval;
   
   std::vector<double> g_best;
@@ -595,6 +597,8 @@ SAResult simulated_annealing(
     
     best_score = init_scores.H;
     best_Fx    = init_scores.Fx;
+    best_F1    = init_scores.F1;
+    best_F2    = init_scores.F2;
     
     best = X0;
     curr = X0;
@@ -658,6 +662,8 @@ SAResult simulated_annealing(
     best       = std::move(cp.best);
     best_score = cp.best_score;
     best_Fx    = cp.best_Fx;
+    best_F1    = cp.best_F1;
+    best_F2    = cp.best_F2;
     
     g_best         = std::move(cp.g_best);
     g_create_best  = std::move(cp.g_create_best);
@@ -824,8 +830,12 @@ SAResult simulated_annealing(
       // Update best
       if (candidate_eval < best_score) {
         best = candidate;
+        
         best_score = candidate_eval;
         best_Fx = scores.Fx;
+        best_F1    = scores.F1;
+        best_F2    = scores.F2;
+        
         g_best = scores.g;
         g_create_best = scores.g_create;
         g_improve_best = scores.g_improve;
@@ -1139,6 +1149,11 @@ SAResult simulated_annealing(
   SAResult out;
   out.X_best   = best;
   out.H_best   = best_score;
+  
+  out.F_best   = best_Fx;
+  out.F1_best  = best_F1;
+  out.F2_best  = best_F2;
+  
   out.H_trace  = H_history;
   out.F_trace  = F_history;
   out.F1_trace = F1_history;

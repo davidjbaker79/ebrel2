@@ -88,6 +88,9 @@ struct RunEBRELResult {
   std::vector<double> F1_trace;
   std::vector<double> F2_trace;
   std::vector<double> g_best;
+  double F_best;
+  double F1_best;
+  double F2_best;
   std::vector<double> g_create_best;
   std::vector<double> g_improve_best;
   int iterations_run = 0;

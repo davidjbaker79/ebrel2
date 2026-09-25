@@ -199,6 +199,9 @@ RunEBRELResult run_ebrel(const RunEBRELInput& in,
   out.F_trace        = std::move(sa.F_trace);
   out.F1_trace       = std::move(sa.F1_trace);
   out.F2_trace       = std::move(sa.F2_trace);
+  out.F_best         = std::move(sa.F_best);
+  out.F1_best         = std::move(sa.F1_best);
+  out.F2_best         = std::move(sa.F2_best);
   out.iterations_run = sa.diag.iterations_completed;
   out.g_best         = std::move(sa.g_best);
   out.g_create_best  = std::move(sa.g_create_best);

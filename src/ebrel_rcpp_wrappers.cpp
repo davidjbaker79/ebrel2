@@ -329,8 +329,9 @@ Rcpp::List run_ebrel_cpp(
     }
   }
   
-  built.in.improve_w_default = (n_improvable > 0)
-    ? 1.0 / static_cast<double>(n_improvable)
+  built.in.improve_w_default = 
+    (n_improvable > 0)
+    ? 1.0 
     : 0.0;
 
   // ---- Generate X0 only when none was supplied ----

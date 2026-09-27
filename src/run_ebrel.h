@@ -20,8 +20,8 @@ struct RunEBRELOptions {
   double sigma            = 0.05;
   const std::vector<int8_t>* X0 = nullptr;   // X0 supply optional
   double base_prob_X0     = 0.95;
-  double step_proportion  = 0.01;
-  double step_probability = 0.05;
+  double step_proportion  = 0.01; // proportion of grid cells selected per candidate
+  double step_probability = 0.7;  // the probability that a selected cell receives an action
   int n_iterations        = 10000;
   double temp             = 2000;
   double cooling_rate_c   = 1;

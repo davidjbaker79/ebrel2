@@ -70,8 +70,15 @@ CandidateUpdate update_candidate(
   if (eligible.empty()) return result;
   
   // How many cells to try
-  int step_size = static_cast<int>(
-    std::round(step_proportion * static_cast<double>(eligible.size())));
+  int step_size = std::max(
+    1,
+    static_cast<int>(
+      std::round(
+        step_proportion *
+          static_cast<double>(eligible.size())
+      )
+    )
+  );
   if (step_size <= 0) return result;
   
   // Set improvement proposal weights.

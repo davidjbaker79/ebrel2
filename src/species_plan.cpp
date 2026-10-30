@@ -72,7 +72,8 @@ SpeciesPlan build_species_plan(
     const std::size_t base_sd = static_cast<std::size_t>(sp) * cells;
     int count = 0;
     for (std::size_t k = 0; k < cells; ++k) {
-      if (SD[base_sd + k] > 0.0) count++;
+      if (SD[base_sd + k] > 0.0) 
+        count++;
     }
     P.Ns[sp] = count;
   }
@@ -99,19 +100,21 @@ SpeciesPlan build_species_plan(
     P.fast_path[sp] = (disp_raw >= universal_disp_thres) ? 1u : 0u;
 
     // ---- Seeds + bbox (but store seeds into global flat pool)
+    // Any observed occurrence is treated as evidence that suitable habitat
+    // exists somewhere within the planning unit. Therefore seed status does
+    // not depend on compatibility between the coarse existing-habitat class E
+    // and the species-habitat association SxH.
     const std::size_t base_sd = static_cast<std::size_t>(sp) * cells;
 
-    int min_r = dim_y, max_r = -1, min_c = dim_x, max_c = -1;
+    int min_r = dim_y, max_r = -1;
+    int min_c = dim_x, max_c = -1;
 
     const uint32_t start = static_cast<uint32_t>(P.seed_pool.size());
     P.seed_start[sp] = start;
 
     for (std::size_t k = 0; k < cells; ++k) {
-      if (SD[base_sd + k] != 1.0) continue;
-
-      const int ehx = E[k];
-      if (ehx == -1) continue;
-      if (!P.suitable[base_h + static_cast<std::size_t>(ehx)]) continue;
+      if (SD[base_sd + k] <= 0.0) continue;
+      if (E[k] == -1) continue; 
       
       P.seed_pool.push_back(static_cast<SeedT>(k));
 
@@ -141,11 +144,7 @@ SpeciesPlan build_species_plan(
       );
     }
     
-    if (len == 0u) {
-      P.O_n[sp] = 0.0;
-    } else {
-      P.O_n[sp] = static_cast<double>(len) * o;
-    }
+    P.O_n[sp] = static_cast<double>(len) * o;
 
     // ---- Mark inactive species
     if (len == 0u) {

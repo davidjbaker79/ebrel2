@@ -38,6 +38,9 @@ struct SAResult {
   std::vector<double> g_best;   // Short-fall in targets
   std::vector<double> g_create_best;   // Creation gain
   std::vector<double> g_improve_best;   // Improvement gain
+  double missed_target_prop = 0.0;   // Prop missing target
+  int n_targets_missed = 0;   // N species missing target
+  int n_target_species = 0;   // N target species
   SADiagnostics diag;
 };
 
@@ -74,12 +77,13 @@ SAResult simulated_annealing(
     double alpha,
     double beta,
     double gamma,
+    double delta,
     // ---------- Internal raw-component standardisation constants
     double scale_cost,
     double scale_config,
     double scale_target,
     // ---------- Scaling for improvement sampling
-    double improve_total_weight,
+    double improve_proposal_weight,
     // ---------- Simulated Annealing
     double step_proportion,
     double step_probability,
@@ -109,7 +113,7 @@ SAResult simulated_annealing(
 
 struct SACheckpoint {
   
-  uint32_t version = 2;
+  uint32_t version = 3;
   
   int dim_x = 0;
   int dim_y = 0;
@@ -136,6 +140,16 @@ struct SACheckpoint {
   std::vector<double> g_best;
   std::vector<double> g_create_best;
   std::vector<double> g_improve_best;
+  
+  double best_missed_target_prop = 0.0;
+  int best_n_targets_missed = 0;
+  int best_n_target_species = 0;
+  
+  // Parameters
+  double alpha = 0.0;
+  double beta  = 0.0;
+  double gamma = 0.0;
+  double delta = 0.0;
   
   // Scaling parameters
   double scale_cost;

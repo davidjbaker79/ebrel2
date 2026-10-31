@@ -163,6 +163,7 @@ BuiltEBREL build_ebrel(
     b.in.roi_cap,
     b.in.row_first_land, b.in.row_last_land,
     b.in.col_first_land, b.in.col_last_land,
+    b.in.LM,
     b.in.E,
     b.in.cell_r, b.in.cell_c
   );

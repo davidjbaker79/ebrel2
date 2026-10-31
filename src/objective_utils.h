@@ -18,8 +18,11 @@ struct HResult {
   double F2;                      // Raw configuration component
   std::vector<double> G;          // Raw creation benefit by species
   std::vector<double> g;          // Residual target shortfall by species
-  std::vector<double> g_create;   // Creation contribution by species
+  std::vector<double> g_create;   // Net creation contribution after occupied-habitat loss
   std::vector<double> g_improve;  // Improvement contribution by species
+  double missed_target_prop;      // Proportion species missing targets
+  int n_targets_missed;           // Number of species missing targets
+  int n_target_species;           // Number of target species
 };
 
 // Declare F1 objective function
@@ -49,6 +52,7 @@ HResult compute_H(const std::vector<int8_t>& X,
                   double alpha,
                   double beta,
                   double gamma,
+                  double delta,
                   double scale_cost,
                   double scale_config,
                   double scale_target,
@@ -71,7 +75,7 @@ HResult compute_H(const std::vector<int8_t>& X,
                   const std::vector<int>& cell_c,
                   const RowRunsCache& rowruns_cache,
                   const SpeciesPlan& species_plan,
-                  std::vector<int> improve_count
+                  const std::vector<int>& improve_count
                   );
 
 

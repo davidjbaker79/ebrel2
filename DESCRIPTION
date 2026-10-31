@@ -19,5 +19,5 @@ Imports:
   terra
 LinkingTo: 
   Rcpp
-Config/roxygen2/version: 8.1.0
+Config/roxygen2/version: 8.1.1
 RoxygenNote: 7.3.2

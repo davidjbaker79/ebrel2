@@ -119,9 +119,14 @@ std::vector<double> compute_G(
           if (!LM[g]) continue;
           const int hx = X[g];
           // Exclude improvement (n_habitats) and unassigned (-1) from G
-          if (hx != -1 && hx != n_habitats && suitable_h_flag[hx]) 
+          if (hx >= 0 &&
+              hx < n_habitats &&
+              suitable_h_flag[hx]) {
+            
             total += species_plan.action_weight[
-          static_cast<std::size_t>(hx)];
+            static_cast<std::size_t>(hx)
+            ];
+          }
         }
       }
       result[sp] = total;
@@ -190,24 +195,41 @@ std::vector<double> compute_G(
       std::size_t idx = rowOff + static_cast<std::size_t>(cc0 - c0);
 
       for (int c = cc0; c <= cc1; ++c, ++idx, ++g) {
-        uint8_t hmask = 0u, tmask = 0u;
+        uint8_t hmask = 0u;
+        uint8_t tmask = 0u;
         float hw = 0.0f;
         
         const int hx = X[g];
-        const bool is_improve = (hx == n_habitats); // improvement action is n_habitats in 0-indexed
         
-        if (!is_improve && hx != -1 && suitable_h_flag[hx]) {
-          // Creation actions (0..n_habitats-1): counts as new habitat AND transit
-          hmask = 1u; 
-          tmask = 1u;
-          hw = static_cast<float>(species_plan.action_weight[static_cast<std::size_t>(hx)]);
-        } else {
-          // No action (-1) or improvement (n_habitats): transit from existing habitat only
+        if (hx >= 0 && hx < n_habitats) {
+          
+          // Creation action replaces the existing habitat.
+          if (suitable_h_flag[hx]) {
+            
+            // Suitable creation contributes new habitat and can be used as transit.
+            hmask = 1u;
+            tmask = 1u;
+            
+            hw = static_cast<float>(
+              species_plan.action_weight[
+            static_cast<std::size_t>(hx)
+              ]
+            );
+          }
+          
+          // Unsuitable creation leaves hmask = 0 and tmask = 0:
+          // the existing habitat has been replaced by unsuitable habitat.
+          
+        } else if (hx == -1 || hx == n_habitats) {
+          
+          // No action or improvement retains existing habitat for transit.
           const int he = E[g];
-          if (he != -1 && suitable_h_flag[he]) tmask = 1u;
-          hw = 0.0f;
-          // hmask stays 0
+          
+          if (he != -1 && suitable_h_flag[he]) {
+            tmask = 1u;
+          }
         }
+        
         habitat[idx] = hmask;
         transit[idx] = tmask;
         hab_weight[idx] = hw;
@@ -221,18 +243,56 @@ std::vector<double> compute_G(
     // ---- Seed frontier from flat pool
     const uint32_t start = species_plan.seed_start[sp];
     const uint32_t len   = species_plan.seed_len[sp];
-
+    
     for (uint32_t t = 0; t < len; ++t) {
-      const std::size_t k = static_cast<std::size_t>(species_plan.seed_pool[start + t]);
-
-      const int r = cell_r[k], c = cell_c[k];
-      if (r < r0 || r > r1 || c < c0 || c > c1) continue;
-
-      const std::size_t idx = static_cast<std::size_t>(r - r0) * static_cast<std::size_t>(W)
-        + static_cast<std::size_t>(c - c0);
-
-      if (!transit[idx]) continue;
-      if (visited_test_and_set(idx, visited_bits, visited_word_stamp, cur_stamp)) continue;
+      
+      const std::size_t k =
+        static_cast<std::size_t>(
+          species_plan.seed_pool[start + t]
+        );
+      
+      const int r = cell_r[k];
+      const int c = cell_c[k];
+      
+      if (r < r0 || r > r1 || c < c0 || c > c1)
+        continue;
+      
+      const std::size_t idx =
+        static_cast<std::size_t>(r - r0) *
+        static_cast<std::size_t>(W) +
+        static_cast<std::size_t>(c - c0);
+      
+      const int hx = X[k];
+      
+      // An observed occurrence establishes this cell as a valid dispersal
+      // origin unless the selected creation action replaces it with habitat
+      // unsuitable for the species.
+      bool seed_retained = false;
+      
+      if (hx < 0) {
+        // No action: retain observed occurrence regardless of coarse E.
+        seed_retained = true;
+        
+      } else if (hx < n_habitats) {
+        // Creation action: occurrence retained only if the new habitat
+        // is suitable for this species.
+        seed_retained = suitable_h_flag[hx] != 0u;
+        
+      } else {
+        // Non-creation action, currently improvement: retain occurrence.
+        seed_retained = true;
+      }
+      
+      if (!seed_retained)
+        continue;
+      
+      if (visited_test_and_set(
+          idx,
+          visited_bits,
+          visited_word_stamp,
+          cur_stamp))
+        continue;
+      
       frontier.push_back(idx);
     }
 

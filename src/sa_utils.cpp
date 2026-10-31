@@ -82,6 +82,7 @@ InitTempResult estimate_initial_temperature_benameur_cpp(
     double alpha,
     double beta,
     double gamma,
+    double delta,
     double scale_cost,
     double scale_config,
     double scale_target,
@@ -109,6 +110,19 @@ InitTempResult estimate_initial_temperature_benameur_cpp(
   if (!(step_probability >= 0.0 && step_probability <= 1.0)) throw std::invalid_argument("step_probability must be in [0,1]");
   if (max_tries_factor <= 0) throw std::invalid_argument("max_tries_factor must be > 0");
   if (max_iters < 0) throw std::invalid_argument("max_iters must be >= 0");
+  
+  if (!std::isfinite(alpha) ||
+      !std::isfinite(beta)  ||
+      !std::isfinite(gamma) ||
+      !std::isfinite(delta)) {
+      throw std::invalid_argument(
+          "Objective weights alpha, beta, gamma and delta must be finite"
+      );
+  }
+  
+  if (delta < 0.0) {
+    throw std::invalid_argument("delta must be non-negative");
+  }
   
   const std::size_t n_cells = static_cast<std::size_t>(dim_x) * static_cast<std::size_t>(dim_y);
   if (n_cells > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
@@ -149,6 +163,7 @@ InitTempResult estimate_initial_temperature_benameur_cpp(
     alpha,
     beta,
     gamma,
+    delta,
     scale_cost,
     scale_config,
     scale_target,
@@ -187,10 +202,9 @@ InitTempResult estimate_initial_temperature_benameur_cpp(
     const std::vector<int8_t>& candidate = update.X;
     
     // Save improve_count before proposal
-    std::vector<int> improve_count_old = improve_count;
     std::vector<int> improve_count_candidate = improve_count;
     
-    const int improve_action = species_plan.n_habitats;
+    const int improve_action = n_actions - 1;
     
     for (const auto& ch : update.changes) {
       const bool old_improve = (static_cast<int>(ch.old_action) == improve_action);
@@ -198,12 +212,14 @@ InitTempResult estimate_initial_temperature_benameur_cpp(
       
       if (old_improve == new_improve) continue;
       
-      const int delta = new_improve ? 1 : -1;
+      const int improve_delta = new_improve ? 1 : -1;
       const uint32_t start = species_plan.cell_species_start[ch.cell];
       const uint32_t len   = species_plan.cell_species_len[ch.cell];
       
       for (uint32_t j = 0; j < len; ++j) {
-        improve_count_candidate[species_plan.cell_species_pool[start + j]] += delta;
+        improve_count_candidate[
+        species_plan.cell_species_pool[start + j]
+        ] += improve_delta;
       }
     }
     
@@ -213,6 +229,7 @@ InitTempResult estimate_initial_temperature_benameur_cpp(
       alpha,
       beta,
       gamma,
+      delta,
       scale_cost,
       scale_config,
       scale_target,
@@ -227,7 +244,7 @@ InitTempResult estimate_initial_temperature_benameur_cpp(
       cell_r, cell_c,
       rowruns_cache,
       species_plan,
-      improve_count
+      improve_count_candidate
     ).H;
     
     const double dE = E_cand - E_base;
@@ -237,7 +254,7 @@ InitTempResult estimate_initial_temperature_benameur_cpp(
       dpos.push_back(dE);
     }
     
-    // Random walk — restore improve_count if not accepting
+    // Random walk — advance both X and derived improvement state if accepted
     if (runif(rng) < 0.5) {
       X_seed = candidate;
       E_base = E_cand;
@@ -319,6 +336,3 @@ InitTempResult estimate_initial_temperature_benameur_cpp(
   }
   return res;
 }
-
-
-

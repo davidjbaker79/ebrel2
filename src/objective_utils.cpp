@@ -13,6 +13,7 @@
 #include <string>     // std::to_strings
 //#include <iostream>
 
+
 //-------------------------- Local helper functions ----------------------------
 namespace {
 
@@ -181,6 +182,7 @@ HResult compute_H(const std::vector<int8_t>& X,
                   double alpha,
                   double beta,
                   double gamma,
+                  double delta,
                   double scale_cost,
                   double scale_config,
                   double scale_target,
@@ -203,7 +205,7 @@ HResult compute_H(const std::vector<int8_t>& X,
                   const std::vector<int>& cell_c,
                   const RowRunsCache& rowruns_cache,
                   const SpeciesPlan& species_plan,
-                  std::vector<int> improve_count  // n_s: improved cells per species (changes each SA step)
+                  const std::vector<int>& improve_count  // n_s: improved cells per species (changes each SA step)
 ){
 
   // ---- F1 and F2 -----
@@ -228,6 +230,12 @@ HResult compute_H(const std::vector<int8_t>& X,
   std::vector<double> g_improve(static_cast<std::size_t>(n_species), 0.0);
   std::vector<double> g_create(static_cast<std::size_t>(n_species), 0.0);
   
+  // ---- Missed targets
+  int n_target_species = 0;
+  int n_targets_missed = 0;
+  
+  constexpr double target_tol = 1e-8;
+  
   for (int sp = 0; sp < n_species; ++sp) {
 
     const std::size_t spi = static_cast<std::size_t>(sp);
@@ -247,6 +255,9 @@ HResult compute_H(const std::vector<int8_t>& X,
       g_improve[spi] = 0.0;
       continue;
     }
+    
+    // Species has a genuine target in this optimisation.
+    ++n_target_species;
     
     const double m0 =
       static_cast<double>(species_plan.seed_len[spi]);
@@ -271,23 +282,32 @@ HResult compute_H(const std::vector<int8_t>& X,
       static_cast<double>(improve_count[spi]) *
       static_cast<double>(
         species_plan.action_weight[
-    static_cast<std::size_t>(improve_action)
+          static_cast<std::size_t>(improve_action)
         ]
       );
     
     // Express that absolute benefit as a proportion of this species' target.
-    g_improve[spi] =
-      improve_benefit / target;
+    g_improve[spi] = improve_benefit / target;
     
     // Residual target shortfall: 1 = no progress; 0 = target met.
-    const double achieved =
-      g_create[spi] + g_improve[spi];
+    const double achieved = g_create[spi] + g_improve[spi];
     
     g[spi] = std::max(0.0, 1.0 - achieved);
 
+    // Count species that have not achieved their target.
+    if (g[spi] > target_tol) {
+      ++n_targets_missed;
+    }
+    
   }
 
   const double gx_val = std::accumulate(g.begin(), g.end(), 0.0);
+  
+  const double missed_target_prop =
+    (n_target_species > 0)
+    ? static_cast<double>(n_targets_missed) /
+      static_cast<double>(n_target_species)
+    : 0.0;
   
   // The three raw components are standardised using fixed calibration
   // values estimated before temperature tuning and simulated annealing.
@@ -324,7 +344,21 @@ HResult compute_H(const std::vector<int8_t>& X,
   
   const double H_val =
     Fx_val +
-    gamma * g_standardised;
+    gamma * g_standardised +
+    delta * missed_target_prop;
 
-  return { H_val, Fx_val, gx_val, f1, f2, G, g, g_create, g_improve};
+  return { 
+      H_val, 
+      Fx_val, 
+      gx_val, 
+      f1, 
+      f2, 
+      G, 
+      g, 
+      g_create, 
+      g_improve,
+      missed_target_prop,
+      n_targets_missed,
+      n_target_species
+    };
 }

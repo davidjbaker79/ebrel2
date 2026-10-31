@@ -13,3 +13,11 @@ read_sa_checkpoint_R <- function(checkpoint_file) {
     .Call(`_ebrel2_read_sa_checkpoint_R`, checkpoint_file)
 }
 
+build_species_suitable_R <- function(SD, SxH, D, O, action_weight, E_int, LM_int, cell_r, cell_c, row_first_land, row_last_land, col_first_land, col_last_land, n_actions, n_species, n_habitats, dim_x, dim_y, universal_disp_thres, max_disp_steps, roi_cap) {
+    .Call(`_ebrel2_build_species_suitable_R`, SD, SxH, D, O, action_weight, E_int, LM_int, cell_r, cell_c, row_first_land, row_last_land, col_first_land, col_last_land, n_actions, n_species, n_habitats, dim_x, dim_y, universal_disp_thres, max_disp_steps, roi_cap)
+}
+
+check_species_suitable_cpp <- function(E_int, C, SD, D, SxH, O, action_weight, LM_int, dim_x, dim_y, n_actions, n_species, sentinel, opt) {
+    .Call(`_ebrel2_check_species_suitable_cpp`, E_int, C, SD, D, SxH, O, action_weight, LM_int, dim_x, dim_y, n_actions, n_species, sentinel, opt)
+}
+

@@ -58,6 +58,7 @@ struct RunEBRELInput {
   double alpha = 1.0;
   double beta  = 1.0;
   double gamma = 1.0;
+  double delta = 0.0;
   ObjectiveScales objective_scales;
   std::vector<int8_t> E;
   std::vector<uint8_t> U;
@@ -76,7 +77,7 @@ struct RunEBRELInput {
   SpeciesPlan species_plan;
   std::vector<int> improve_count;
   std::vector<float> action_weight;
-  double improve_w_default;
+  double improve_proposal_weight = 1.0;
 };
 
 // Results structure
@@ -88,11 +89,14 @@ struct RunEBRELResult {
   std::vector<double> F1_trace;
   std::vector<double> F2_trace;
   std::vector<double> g_best;
-  double F_best;
-  double F1_best;
-  double F2_best;
   std::vector<double> g_create_best;
   std::vector<double> g_improve_best;
+  double F_best = 0.0;
+  double F1_best = 0.0;
+  double F2_best = 0.0;
+  double missed_target_prop = 0.0;
+  int n_targets_missed = 0;
+  int n_target_species = 0;
   int iterations_run = 0;
   // --- Diagnostics from SA ---
   std::vector<double> acc_rate_trace;  // acceptance per window

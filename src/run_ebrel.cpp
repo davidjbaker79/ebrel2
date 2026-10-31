@@ -19,11 +19,11 @@
 
 namespace {
 
-inline void ensure(bool ok, const char* msg) {
-  if (!ok) {
-    throw std::invalid_argument(msg);
+  inline void ensure(bool ok, const char* msg) {
+    if (!ok) {
+      throw std::invalid_argument(msg);
+    }
   }
-}
   
   inline std::size_t n_cells(int dim_x, int dim_y) {
     return static_cast<std::size_t>(dim_x) *
@@ -36,14 +36,25 @@ inline void ensure(bool ok, const char* msg) {
     ensure(std::isfinite(in.alpha), "alpha must be finite");
     ensure(std::isfinite(in.beta),  "beta must be finite");
     ensure(std::isfinite(in.gamma), "gamma must be finite");
+    ensure(std::isfinite(in.delta), "delta must be finite");
     
     ensure(in.alpha >= 0.0, "alpha must be non-negative");
     ensure(in.beta  >= 0.0, "beta must be non-negative");
     ensure(in.gamma >= 0.0, "gamma must be non-negative");
+    ensure(in.delta >= 0.0, "delta must be non-negative");
     
     ensure(
-      (in.alpha > 0.0) || (in.beta > 0.0) || (in.gamma > 0.0),
-      "At least one of alpha, beta, or gamma must be positive"
+      (in.alpha > 0.0) ||
+        (in.beta  > 0.0) ||
+        (in.gamma > 0.0) ||
+        (in.delta > 0.0),
+        "At least one of alpha, beta, gamma, or delta must be positive"
+    );
+    
+    ensure(
+      in.n_actions == in.n_habitats + 1,
+      "n_actions must equal n_habitats + 1 "
+      "(final action is improvement)"
     );
     
     // Internally calibrated raw-component scales.
@@ -64,6 +75,7 @@ inline void ensure(bool ok, const char* msg) {
         in.objective_scales.target > 0.0,
         "objective_scales.target must be finite and positive"
     );
+  
   }
   
   inline void validate_shapes(const RunEBRELInput& in) {
@@ -131,6 +143,47 @@ inline void ensure(bool ok, const char* msg) {
       );
     }
     
+    ensure(
+      in.W.size() ==
+        static_cast<std::size_t>(in.n_habitats) * cells,
+        "W size mismatch (expected dim_x*dim_y*n_habitats)"
+    );
+    
+    ensure(
+      in.action_weight.size() ==
+        static_cast<std::size_t>(in.n_actions),
+        "action_weight size mismatch (expected n_actions)"
+    );
+    
+    ensure(
+      in.improve_count.size() ==
+        static_cast<std::size_t>(in.n_species),
+        "improve_count size mismatch (expected n_species)"
+    );
+    
+    ensure(
+      in.cell_r.size() == cells &&
+        in.cell_c.size() == cells,
+          "cell_r and cell_c must have length dim_x*dim_y"
+    );
+    
+    ensure(
+      in.LM.size() == cells,
+      "LM size mismatch (expected dim_x*dim_y)"
+    );
+    
+    ensure(
+      in.row_first_land.size() == static_cast<std::size_t>(in.dim_y) &&
+        in.row_last_land.size()  == static_cast<std::size_t>(in.dim_y),
+          "row land-span vectors must have length dim_y"
+    );
+    
+    ensure(
+      in.col_first_land.size() == static_cast<std::size_t>(in.dim_x) &&
+        in.col_last_land.size()  == static_cast<std::size_t>(in.dim_x),
+          "column land-span vectors must have length dim_x"
+    );
+    
     validate_objective_settings(in);
   }
   
@@ -166,9 +219,9 @@ RunEBRELResult run_ebrel(const RunEBRELInput& in,
     in.roi_cap,
     in.LM,
     in.row_first_land, in.row_last_land, in.col_first_land, in.col_last_land,
-    in.alpha, in.beta, in.gamma,
+    in.alpha, in.beta, in.gamma, in.delta,
     in.objective_scales.cost, in.objective_scales.config, in.objective_scales.target,
-    in.improve_w_default,
+    in.improve_proposal_weight,
     opt.step_proportion,
     opt.step_probability,
     opt.n_iterations,
@@ -193,20 +246,23 @@ RunEBRELResult run_ebrel(const RunEBRELInput& in,
    );
   
   RunEBRELResult out;
-  out.X_best         = std::move(sa.X_best);
-  out.H_best         = sa.H_best;
-  out.H_trace        = std::move(sa.H_trace);
-  out.F_trace        = std::move(sa.F_trace);
-  out.F1_trace       = std::move(sa.F1_trace);
-  out.F2_trace       = std::move(sa.F2_trace);
-  out.F_best         = std::move(sa.F_best);
-  out.F1_best         = std::move(sa.F1_best);
-  out.F2_best         = std::move(sa.F2_best);
+  out.X_best = std::move(sa.X_best);
+  out.H_best = sa.H_best;
+  out.H_trace = std::move(sa.H_trace);
+  out.F_trace = std::move(sa.F_trace);
+  out.F1_trace = std::move(sa.F1_trace);
+  out.F2_trace = std::move(sa.F2_trace);
+  out.F_best  = sa.F_best;
+  out.F1_best = sa.F1_best;
+  out.F2_best = sa.F2_best;
   out.iterations_run = sa.diag.iterations_completed;
-  out.g_best         = std::move(sa.g_best);
+  out.g_best  = std::move(sa.g_best);
   out.g_create_best  = std::move(sa.g_create_best);
   out.g_improve_best = std::move(sa.g_improve_best);
-
+  out.missed_target_prop = sa.missed_target_prop;
+  out.n_targets_missed   = sa.n_targets_missed;
+  out.n_target_species   = sa.n_target_species;
+  
   // Diagnostics
   out.acc_rate_trace   = std::move(sa.diag.acceptance_rate_trace);
   out.early_stop_iter  = sa.diag.early_stop_iter;

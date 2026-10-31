@@ -62,11 +62,68 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// build_species_suitable_R
+Rcpp::IntegerMatrix build_species_suitable_R(const std::vector<double>& SD, const std::vector<double>& SxH, const std::vector<int>& D, const std::vector<double>& O, const std::vector<double>& action_weight, const std::vector<int>& E_int, const std::vector<int>& LM_int, const std::vector<int>& cell_r, const std::vector<int>& cell_c, const std::vector<int16_t>& row_first_land, const std::vector<int16_t>& row_last_land, const std::vector<int16_t>& col_first_land, const std::vector<int16_t>& col_last_land, int n_actions, int n_species, int n_habitats, int dim_x, int dim_y, int universal_disp_thres, int max_disp_steps, int roi_cap);
+RcppExport SEXP _ebrel2_build_species_suitable_R(SEXP SDSEXP, SEXP SxHSEXP, SEXP DSEXP, SEXP OSEXP, SEXP action_weightSEXP, SEXP E_intSEXP, SEXP LM_intSEXP, SEXP cell_rSEXP, SEXP cell_cSEXP, SEXP row_first_landSEXP, SEXP row_last_landSEXP, SEXP col_first_landSEXP, SEXP col_last_landSEXP, SEXP n_actionsSEXP, SEXP n_speciesSEXP, SEXP n_habitatsSEXP, SEXP dim_xSEXP, SEXP dim_ySEXP, SEXP universal_disp_thresSEXP, SEXP max_disp_stepsSEXP, SEXP roi_capSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type SD(SDSEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type SxH(SxHSEXP);
+    Rcpp::traits::input_parameter< const std::vector<int>& >::type D(DSEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type O(OSEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type action_weight(action_weightSEXP);
+    Rcpp::traits::input_parameter< const std::vector<int>& >::type E_int(E_intSEXP);
+    Rcpp::traits::input_parameter< const std::vector<int>& >::type LM_int(LM_intSEXP);
+    Rcpp::traits::input_parameter< const std::vector<int>& >::type cell_r(cell_rSEXP);
+    Rcpp::traits::input_parameter< const std::vector<int>& >::type cell_c(cell_cSEXP);
+    Rcpp::traits::input_parameter< const std::vector<int16_t>& >::type row_first_land(row_first_landSEXP);
+    Rcpp::traits::input_parameter< const std::vector<int16_t>& >::type row_last_land(row_last_landSEXP);
+    Rcpp::traits::input_parameter< const std::vector<int16_t>& >::type col_first_land(col_first_landSEXP);
+    Rcpp::traits::input_parameter< const std::vector<int16_t>& >::type col_last_land(col_last_landSEXP);
+    Rcpp::traits::input_parameter< int >::type n_actions(n_actionsSEXP);
+    Rcpp::traits::input_parameter< int >::type n_species(n_speciesSEXP);
+    Rcpp::traits::input_parameter< int >::type n_habitats(n_habitatsSEXP);
+    Rcpp::traits::input_parameter< int >::type dim_x(dim_xSEXP);
+    Rcpp::traits::input_parameter< int >::type dim_y(dim_ySEXP);
+    Rcpp::traits::input_parameter< int >::type universal_disp_thres(universal_disp_thresSEXP);
+    Rcpp::traits::input_parameter< int >::type max_disp_steps(max_disp_stepsSEXP);
+    Rcpp::traits::input_parameter< int >::type roi_cap(roi_capSEXP);
+    rcpp_result_gen = Rcpp::wrap(build_species_suitable_R(SD, SxH, D, O, action_weight, E_int, LM_int, cell_r, cell_c, row_first_land, row_last_land, col_first_land, col_last_land, n_actions, n_species, n_habitats, dim_x, dim_y, universal_disp_thres, max_disp_steps, roi_cap));
+    return rcpp_result_gen;
+END_RCPP
+}
+// check_species_suitable_cpp
+Rcpp::IntegerMatrix check_species_suitable_cpp(const std::vector<int>& E_int, const std::vector<double>& C, const std::vector<double>& SD, const std::vector<int>& D, const std::vector<double>& SxH, const std::vector<double>& O, const std::vector<double>& action_weight, const std::vector<int>& LM_int, int dim_x, int dim_y, int n_actions, int n_species, double sentinel, Rcpp::List opt);
+RcppExport SEXP _ebrel2_check_species_suitable_cpp(SEXP E_intSEXP, SEXP CSEXP, SEXP SDSEXP, SEXP DSEXP, SEXP SxHSEXP, SEXP OSEXP, SEXP action_weightSEXP, SEXP LM_intSEXP, SEXP dim_xSEXP, SEXP dim_ySEXP, SEXP n_actionsSEXP, SEXP n_speciesSEXP, SEXP sentinelSEXP, SEXP optSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const std::vector<int>& >::type E_int(E_intSEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type C(CSEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type SD(SDSEXP);
+    Rcpp::traits::input_parameter< const std::vector<int>& >::type D(DSEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type SxH(SxHSEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type O(OSEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type action_weight(action_weightSEXP);
+    Rcpp::traits::input_parameter< const std::vector<int>& >::type LM_int(LM_intSEXP);
+    Rcpp::traits::input_parameter< int >::type dim_x(dim_xSEXP);
+    Rcpp::traits::input_parameter< int >::type dim_y(dim_ySEXP);
+    Rcpp::traits::input_parameter< int >::type n_actions(n_actionsSEXP);
+    Rcpp::traits::input_parameter< int >::type n_species(n_speciesSEXP);
+    Rcpp::traits::input_parameter< double >::type sentinel(sentinelSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type opt(optSEXP);
+    rcpp_result_gen = Rcpp::wrap(check_species_suitable_cpp(E_int, C, SD, D, SxH, O, action_weight, LM_int, dim_x, dim_y, n_actions, n_species, sentinel, opt));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_ebrel2_run_ebrel_cpp", (DL_FUNC) &_ebrel2_run_ebrel_cpp, 15},
     {"_ebrel2_generate_X0_CI_R", (DL_FUNC) &_ebrel2_generate_X0_CI_R, 6},
     {"_ebrel2_read_sa_checkpoint_R", (DL_FUNC) &_ebrel2_read_sa_checkpoint_R, 1},
+    {"_ebrel2_build_species_suitable_R", (DL_FUNC) &_ebrel2_build_species_suitable_R, 21},
+    {"_ebrel2_check_species_suitable_cpp", (DL_FUNC) &_ebrel2_check_species_suitable_cpp, 14},
     {NULL, NULL, 0}
 };
 

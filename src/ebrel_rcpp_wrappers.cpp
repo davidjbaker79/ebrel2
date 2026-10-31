@@ -250,6 +250,7 @@ Rcpp::List run_ebrel_cpp(
   const double alpha = opt_double(opt, "alpha", 1.0);
   const double beta = opt_double(opt, "beta", 25.0);
   const double gamma = opt_double(opt, "gamma", 100.0);
+  const double delta = opt_double(opt, "delta", 0.0);
   
   // ---- Convert optional supplied X0 ----
   std::vector<int8_t> X0_seed;
@@ -311,6 +312,7 @@ Rcpp::List run_ebrel_cpp(
   built.in.alpha = alpha;
   built.in.beta = beta;
   built.in.gamma = gamma;
+  built.in.delta = delta;
   
   // ---- Calculate improvement weighting for W ----
   const int improve_action = built.in.n_actions - 1; // zero-index
@@ -329,7 +331,7 @@ Rcpp::List run_ebrel_cpp(
     }
   }
   
-  built.in.improve_w_default = 
+  built.in.improve_proposal_weight  = 
     (n_improvable > 0)
     ? 1.0 
     : 0.0;
@@ -386,7 +388,7 @@ Rcpp::List run_ebrel_cpp(
       const HResult h = compute_H(
         X,
         built.in.C,
-        1.0, 1.0, 1.0,
+        1.0, 1.0, 1.0, 0.0, 
         1.0, 1.0, 1.0,
         built.in.n_actions,
         built.in.n_species,
@@ -516,6 +518,7 @@ Rcpp::List run_ebrel_cpp(
       << " alpha=" << built.in.alpha
       << " beta=" << built.in.beta
       << " gamma=" << built.in.gamma
+      << " delta=" << built.in.delta
       << '\n';
     }
   
@@ -555,11 +558,13 @@ Rcpp::List run_ebrel_cpp(
         built.in.alpha,
         built.in.beta,
         built.in.gamma,
+        built.in.delta,
         built.in.objective_scales.cost,
         built.in.objective_scales.config,
         built.in.objective_scales.target,
         built.opt.step_proportion,
         built.opt.step_probability,
+        built.in.improve_proposal_weight,
         tune.num_samples,
         tune.chi0,
         tune.p,
@@ -630,13 +635,17 @@ Rcpp::List run_ebrel_cpp(
       Rcpp::Named("F2_best") = res.F2_best,
       Rcpp::Named("g_create_best") = res.g_create_best,
       Rcpp::Named("g_improve_best") = res.g_improve_best,
+      Rcpp::Named("missed_target_prop") = res.missed_target_prop,
+      Rcpp::Named("n_targets_missed")   = res.n_targets_missed,
+      Rcpp::Named("n_target_species")   = res.n_target_species,
       Rcpp::Named("acc_rate_trace") = res.acc_rate_trace,
       Rcpp::Named("iter_ms_total") = res.iter_ms_total,
       Rcpp::Named("iter_count") = res.iter_count,
       Rcpp::Named("objective_weights") = Rcpp::List::create(
         Rcpp::Named("alpha") = built.in.alpha,
         Rcpp::Named("beta") = built.in.beta,
-        Rcpp::Named("gamma") = built.in.gamma
+        Rcpp::Named("gamma") = built.in.gamma,
+        Rcpp::Named("delta") = built.in.delta
       ),
       Rcpp::Named("objective_calibration") =
         calibration_diag,
@@ -697,10 +706,16 @@ Rcpp::List read_sa_checkpoint_R(
   out["best"] = best;
   out["best_score"] = cp.best_score;
   out["best_Fx"] = cp.best_Fx;
+  out["best_F1"] = cp.best_F1;
+  out["best_F2"] = cp.best_F2;
   
   out["g_best"] = cp.g_best;
   out["g_create_best"] = cp.g_create_best;
   out["g_improve_best"] = cp.g_improve_best;
+  
+  out["best_missed_target_prop"] = cp.best_missed_target_prop;
+  out["best_n_targets_missed"] = cp.best_n_targets_missed;
+  out["best_n_target_species"] = cp.best_n_target_species;
   
   out["attempted_total"] = cp.attempted_total;
   out["accepted_total"] = cp.accepted_total;
@@ -734,4 +749,159 @@ Rcpp::List read_sa_checkpoint_R(
   
   return out;
  
+}
+
+// [[Rcpp::export]]
+Rcpp::IntegerMatrix build_species_suitable_R(
+    const std::vector<double>& SD,
+    const std::vector<double>& SxH,
+    const std::vector<int>& D,
+    const std::vector<double>& O,
+    const std::vector<double>& action_weight,
+    const std::vector<int>& E_int,
+    const std::vector<int>& LM_int,
+    const std::vector<int>& cell_r,
+    const std::vector<int>& cell_c,
+    const std::vector<int16_t>& row_first_land,
+    const std::vector<int16_t>& row_last_land,
+    const std::vector<int16_t>& col_first_land,
+    const std::vector<int16_t>& col_last_land,
+    int n_actions,
+    int n_species,
+    int n_habitats,
+    int dim_x,
+    int dim_y,
+    int universal_disp_thres,
+    int max_disp_steps,
+    int roi_cap
+) {
+  
+  std::vector<int8_t> E(E_int.begin(), E_int.end());
+  std::vector<uint8_t> LM(LM_int.begin(), LM_int.end());
+  std::vector<float> aw(action_weight.begin(), action_weight.end());
+  
+  SpeciesPlan P = build_species_plan(
+    SD,
+    SxH,
+    D,
+    O,
+    aw,
+    n_actions,
+    n_species,
+    n_habitats,
+    dim_x,
+    dim_y,
+    universal_disp_thres,
+    max_disp_steps,
+    roi_cap,
+    row_first_land,
+    row_last_land,
+    col_first_land,
+    col_last_land,
+    LM,
+    E,
+    cell_r,
+    cell_c
+  );
+  
+  Rcpp::IntegerMatrix out(n_species, n_habitats);
+  
+  for (int sp = 0; sp < n_species; ++sp) {
+    for (int h = 0; h < n_habitats; ++h) {
+      
+      const std::size_t idx =
+        static_cast<std::size_t>(sp) *
+        static_cast<std::size_t>(n_habitats) +
+        static_cast<std::size_t>(h);
+      
+      out(sp, h) = static_cast<int>(P.suitable[idx]);
+    }
+  }
+  
+  return out;
+}
+
+// [[Rcpp::export]]
+Rcpp::IntegerMatrix check_species_suitable_cpp(
+    const std::vector<int>& E_int,
+    const std::vector<double>& C,
+    const std::vector<double>& SD,
+    const std::vector<int>& D,
+    const std::vector<double>& SxH,
+    const std::vector<double>& O,
+    const std::vector<double>& action_weight,
+    const std::vector<int>& LM_int,
+    int dim_x,
+    int dim_y,
+    int n_actions,
+    int n_species,
+    double sentinel,
+    Rcpp::List opt
+) {
+  
+  std::vector<int8_t> E(E_int.begin(), E_int.end());
+  std::vector<uint8_t> LM(LM_int.begin(), LM_int.end());
+  
+  const int universal_disp_thres =
+    opt_int(opt, "universal_disp_thres", 20);
+  
+  const int max_disp_steps =
+    opt_int(opt, "max_disp_steps", 10);
+  
+  const int roi_cap =
+    opt_int(opt, "roi_cap", 100);
+  
+  const double sigma_in =
+    opt_double(opt, "sigma_in", -1.0);
+  
+  const int n_habitats = n_actions - 1;
+  
+  std::vector<int8_t> X0_empty;
+  
+  auto built = build_ebrel(
+    std::move(E),
+    std::vector<double>(C.begin(), C.end()),
+    std::vector<double>(SD.begin(), SD.end()),
+    std::vector<int>(D.begin(), D.end()),
+    std::vector<double>(SxH.begin(), SxH.end()),
+    std::vector<double>(O.begin(), O.end()),
+    std::vector<float>(
+      action_weight.begin(),
+      action_weight.end()
+    ),
+    std::move(LM),
+    std::move(X0_empty),
+    dim_x,
+    dim_y,
+    n_actions,
+    n_species,
+    sentinel,
+    sigma_in,
+    universal_disp_thres,
+    max_disp_steps,
+    roi_cap,
+    false
+  );
+  
+  Rcpp::IntegerMatrix out(
+      n_species,
+      n_habitats
+  );
+  
+  for (int sp = 0; sp < n_species; ++sp) {
+    for (int h = 0; h < n_habitats; ++h) {
+      
+      const std::size_t idx =
+        static_cast<std::size_t>(sp) *
+        static_cast<std::size_t>(n_habitats) +
+        static_cast<std::size_t>(h);
+      
+      out(sp, h) =
+        static_cast<int>(
+          built.in.species_plan.suitable[idx]
+        );
+    }
+  }
+  
+  return out;
 }

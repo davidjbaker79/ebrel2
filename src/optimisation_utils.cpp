@@ -23,8 +23,8 @@ namespace {
 //------------------- Main functions -------------------------------------------
 
 // W contains creation-action proposal weights only.
-// Creation action h corresponds to habitat h, for h = 0 ... n_actions - 1.
-// The improvement action is n_habitats (= n_actions + 1) and is handled elsewhere.
+// Creation action h corresponds to habitat h, for h = 0 ... n_habitats - 1.
+// The improvement action is n_habitats, with n_actions = n_habitats + 1.
 std::vector<double> compute_distance_weights(
     const std::vector<int8_t>& E,
     const std::vector<uint8_t>& U,

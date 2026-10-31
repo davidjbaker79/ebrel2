@@ -53,8 +53,18 @@ CandidateUpdate update_candidate(
   result.X = candidate_in; 
   
   // Check on inputs
-  if (step_proportion <= 0.0 || step_probability < 0.0) return result;
-  if (step_probability > 1.0) throw std::runtime_error("step_probability must be <= 1");
+  if (step_proportion < 0.0 || step_proportion > 1.0)
+    throw std::runtime_error(
+        "step_proportion must be in [0,1]"
+    );
+  
+  if (step_probability < 0.0 || step_probability > 1.0)
+    throw std::runtime_error(
+        "step_probability must be in [0,1]"
+    );
+  
+  if (step_proportion == 0.0)
+    return result;
   
   // Collect eligible cells (any habitat available, now inc. improvement)
   std::vector<int> eligible;
@@ -132,7 +142,7 @@ CandidateUpdate update_candidate(
   for (int i : eligible) eligible_probs.push_back(cell_probs[i]);
   
   double total = std::accumulate(eligible_probs.begin(), eligible_probs.end(), 0.0);
-  if (total <= 0.0) throw std::runtime_error("update_candidate: All values in W are zero.");
+  if (total <= 0.0) throw std::runtime_error("update_candidate: total proposal weight is zero.");
   for (double& p : eligible_probs) p /= total;
   
   // RNG

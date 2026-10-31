@@ -196,7 +196,7 @@ void write_sa_checkpoint(
   const std::uint32_t magic =
     0x45425232; // "EBR2"
   
-  const std::uint32_t version = 2;
+  const std::uint32_t version = 3;
   
   write_binary(out, magic);
   write_binary(out, version);
@@ -208,6 +208,12 @@ void write_sa_checkpoint(
   write_binary(out, cp.n_species);
   write_binary(out, cp.n_habitats);
   write_binary(out, cp.n_iterations);
+  
+  // Objective weights
+  write_binary(out, cp.alpha);
+  write_binary(out, cp.beta);
+  write_binary(out, cp.gamma);
+  write_binary(out, cp.delta);
   
   // Objective scaling
   write_binary(out, cp.scale_cost);
@@ -222,9 +228,16 @@ void write_sa_checkpoint(
   write_vector(out, cp.best);
   write_binary(out, cp.best_score);
   write_binary(out, cp.best_Fx);
+  write_binary(out, cp.best_F1);
+  write_binary(out, cp.best_F2);
+  
   write_vector(out, cp.g_best);
   write_vector(out, cp.g_create_best);
   write_vector(out, cp.g_improve_best);
+  
+  write_binary(out, cp.best_missed_target_prop);
+  write_binary(out, cp.best_n_targets_missed);
+  write_binary(out, cp.best_n_target_species);
 
   // Counters
   write_binary(out, cp.attempted_total);
@@ -333,7 +346,7 @@ SACheckpoint read_sa_checkpoint(
     );
   }
   
-  if (version != 2) {
+  if (version != 3) {
     throw std::runtime_error(
         "Unsupported SA checkpoint version: " +
           std::to_string(version)
@@ -349,6 +362,12 @@ SACheckpoint read_sa_checkpoint(
   read_binary(in, cp.n_habitats);
   read_binary(in, cp.n_iterations);
   
+  // Objective weights
+  read_binary(in, cp.alpha);
+  read_binary(in, cp.beta);
+  read_binary(in, cp.gamma);
+  read_binary(in, cp.delta);
+  
   // Objective scaling
   read_binary(in, cp.scale_cost);
   read_binary(in, cp.scale_config);
@@ -362,9 +381,16 @@ SACheckpoint read_sa_checkpoint(
   read_vector(in, cp.best);
   read_binary(in, cp.best_score);
   read_binary(in, cp.best_Fx);
+  read_binary(in, cp.best_F1);
+  read_binary(in, cp.best_F2);
+  
   read_vector(in, cp.g_best);
   read_vector(in, cp.g_create_best);
   read_vector(in, cp.g_improve_best);
+  
+  read_binary(in, cp.best_missed_target_prop);
+  read_binary(in, cp.best_n_targets_missed);
+  read_binary(in, cp.best_n_target_species);
   
   // Counters
   read_binary(in, cp.attempted_total);
@@ -440,12 +466,13 @@ SAResult simulated_annealing(
     double alpha,
     double beta,
     double gamma,
+    double delta,
     // ---------- Internal raw-component standardisation constants
     double scale_cost,
     double scale_config,
     double scale_target,
     // ---------- Scaling for improvement sampling
-    double improve_total_weight,
+    double improve_proposal_weight,
     // ---------- Simulated Annealing
     double step_proportion,
     double step_probability,
@@ -546,6 +573,10 @@ SAResult simulated_annealing(
   std::vector<double> g_create_best;
   std::vector<double> g_improve_best;
   
+  double best_missed_target_prop = 0.0;
+  int best_n_targets_missed = 0;
+  int best_n_target_species = 0;
+  
   // Diagnostics
   int early_stop_iter = -1;
   int attempted_total = 0;
@@ -574,7 +605,7 @@ SAResult simulated_annealing(
     
     HResult init_scores = compute_H(
       X0, C,
-      alpha, beta, gamma,
+      alpha, beta, gamma, delta,
       scale_cost, scale_config, scale_target,
       n_actions, n_species, n_habitats,
       dim_x, dim_y,
@@ -608,6 +639,10 @@ SAResult simulated_annealing(
     g_best         = init_scores.g;
     g_create_best  = init_scores.g_create;
     g_improve_best = init_scores.g_improve;
+    
+    best_missed_target_prop = init_scores.missed_target_prop;
+    best_n_targets_missed   = init_scores.n_targets_missed;
+    best_n_target_species   = init_scores.n_target_species;
     
     last_best = best_score;
     
@@ -668,6 +703,10 @@ SAResult simulated_annealing(
     g_best         = std::move(cp.g_best);
     g_create_best  = std::move(cp.g_create_best);
     g_improve_best = std::move(cp.g_improve_best);
+    
+    best_missed_target_prop = cp.best_missed_target_prop;
+    best_n_targets_missed   = cp.best_n_targets_missed;
+    best_n_target_species   = cp.best_n_target_species;
     
     attempted_total = cp.attempted_total;
     accepted_total  = cp.accepted_total;
@@ -752,7 +791,7 @@ SAResult simulated_annealing(
       W, U, curr,
       step_proportion,
       step_probability,
-      improve_total_weight,
+      improve_proposal_weight,
       n_actions, 
       n_habitats,
       dim_x, dim_y,
@@ -781,12 +820,12 @@ SAResult simulated_annealing(
         
         if (old_improve == new_improve) continue;
         
-        const int delta = new_improve ? 1 : -1;
+        const int improve_delta = new_improve ? 1 : -1;
         const uint32_t start = species_plan.cell_species_start[ch.cell];
         const uint32_t len   = species_plan.cell_species_len[ch.cell];
         
         for (uint32_t j = 0; j < len; ++j) {
-          improve_count_candidate[species_plan.cell_species_pool[start + j]] += delta;
+          improve_count_candidate[species_plan.cell_species_pool[start + j]] += improve_delta;
         }
       }
 
@@ -795,7 +834,7 @@ SAResult simulated_annealing(
       
       HResult scores = compute_H(
         candidate, C,
-        alpha, beta, gamma,
+        alpha, beta, gamma, delta,
         scale_cost, scale_config, scale_target,
         n_actions, n_species, n_habitats,
         dim_x, dim_y,
@@ -839,14 +878,18 @@ SAResult simulated_annealing(
         g_best = scores.g;
         g_create_best = scores.g_create;
         g_improve_best = scores.g_improve;
+        
+        best_missed_target_prop = scores.missed_target_prop;
+        best_n_targets_missed   = scores.n_targets_missed;
+        best_n_target_species   = scores.n_target_species;
       }
 
       // ------------- Metropolis acceptance -------------------------------
-      const double delta = candidate_eval - curr_eval;
+      const double delta_H = candidate_eval - curr_eval;
       const double epsE  = 1e-12 * (1.0 + std::max(std::abs(curr_eval), std::abs(candidate_eval)));
 
-      const bool downhill = (delta < -epsE);
-      const bool uphill   = (delta >  epsE);
+      const bool downhill = (delta_H < -epsE);
+      const bool uphill   = (delta_H >  epsE);
       const bool flat     = !downhill && !uphill;
 
       if (uphill) {
@@ -864,7 +907,7 @@ SAResult simulated_annealing(
         double u = runif(rng);
         if (u <= 0.0) u = std::numeric_limits<double>::min();
         const double logu = std::log(u);
-        const double logA = -delta / t;
+        const double logA = -delta_H / t;
         accepted = (logu < std::min(0.0, logA));
       }
 
@@ -891,9 +934,10 @@ SAResult simulated_annealing(
         }
       }
       
-      // Update iterations counter
-      iterations_completed = z + 1;
     }
+    
+    // Update iterations counter
+    iterations_completed = z + 1;
 
     // Acceptance window / Lam update
     if ((z + 1) % win == 0) {
@@ -1054,6 +1098,11 @@ SAResult simulated_annealing(
       cp.n_habitats = n_habitats;
       cp.n_iterations = n_iterations;
       
+      cp.alpha = alpha;
+      cp.beta  = beta;
+      cp.gamma = gamma;
+      cp.delta = delta;
+      
       // Objective scaling
       cp.scale_cost   = scale_cost;
       cp.scale_config = scale_config;
@@ -1067,9 +1116,14 @@ SAResult simulated_annealing(
       cp.best       = best;
       cp.best_score = best_score;
       cp.best_Fx    = best_Fx;
-      cp.g_best         = g_best;
+      cp.g_best     = g_best;
+      cp.best_F1 = best_F1;
+      cp.best_F2 = best_F2;
       cp.g_create_best  = g_create_best;
       cp.g_improve_best = g_improve_best;
+      cp.best_missed_target_prop = best_missed_target_prop;
+      cp.best_n_targets_missed   = best_n_targets_missed;
+      cp.best_n_target_species   = best_n_target_species;
       
       // Counters
       cp.attempted_total = attempted_total;
@@ -1161,6 +1215,9 @@ SAResult simulated_annealing(
   out.g_best   = g_best;
   out.g_create_best   = g_create_best;
   out.g_improve_best   = g_improve_best;
+  out.missed_target_prop = best_missed_target_prop;
+  out.n_targets_missed   = best_n_targets_missed;
+  out.n_target_species   = best_n_target_species;
 
   // Diagnostics
   out.diag.acceptance_rate_trace = std::move(acc_rate_trace);

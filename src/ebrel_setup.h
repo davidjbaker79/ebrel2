@@ -178,7 +178,7 @@ inline void create_ebrel_class_object(const std::vector<int8_t>& E,
   // ---- Calculate sigma = 1 / mean(D>0) ----
   double sigma;
 
-  if (sigma_in > 0.0 && std::isfinite(sigma_in)) {
+  if (sigma_in >= 0.0 && std::isfinite(sigma_in)) {
     sigma = sigma_in;
   } else {
     if (D.empty()) {

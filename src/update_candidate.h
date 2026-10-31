@@ -33,10 +33,10 @@ struct CandidateUpdate {
 CandidateUpdate update_candidate(
     const std::vector<double>& W, // [n_cells * n_habitats]
     const std::vector<uint8_t>& U, // [n_cells * n_actions], 1 = unavailable
-    const std::vector<int8_t>& candidate_in,  // length n_cells, one-hot
+    const std::vector<int8_t>& candidate_in,  // length n_cells
     double step_proportion, // proportion of eligible cells to update
     double step_probability, // probability of assigning any actions
-    double improve_total_weight, // default value for the total weight of selection prob for improvement     
+    double improve_proposal_weight, // default value for the total weight of selection prob for improvement     
     int n_actions,
     int n_habitats,
     int dim_x,

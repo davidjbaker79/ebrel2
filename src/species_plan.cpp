@@ -35,6 +35,7 @@ SpeciesPlan build_species_plan(
     const std::vector<int16_t>& row_last_land,
     const std::vector<int16_t>& col_first_land,
     const std::vector<int16_t>& col_last_land,
+    const std::vector<uint8_t>& LM,
     const std::vector<int8_t>& E,
     const std::vector<int>& cell_r,
     const std::vector<int>& cell_c
@@ -49,7 +50,18 @@ SpeciesPlan build_species_plan(
     throw std::runtime_error("D size mismatch in build_species_plan_soa");
   if (action_weight.size() != static_cast<std::size_t>(n_actions))
     throw std::runtime_error("Action_weight must have length n_actions");
-
+  if (O.size() != static_cast<std::size_t>(n_species))
+    throw std::runtime_error("O size mismatch in build_species_plan");
+  if (n_actions != n_habitats + 1)
+    throw std::runtime_error(
+        "Expected n_actions == n_habitats + 1 "
+        "(final action is improvement)"
+    );
+  if (LM.size() != cells)
+    throw std::runtime_error(
+        "LM size mismatch in build_species_plan"
+    );
+  
   SpeciesPlan P;
   P.n_species = n_species;
   P.n_actions = n_actions;
@@ -88,10 +100,25 @@ SpeciesPlan build_species_plan(
   for (int sp = 0; sp < n_species; ++sp) {
 
     // ---- Suitable flags for this species (contiguous in P.suitable)
-    const std::size_t base_h = static_cast<std::size_t>(sp) * static_cast<std::size_t>(n_habitats);
+    const std::size_t base_h =
+      static_cast<std::size_t>(sp) *
+      static_cast<std::size_t>(n_habitats);
+    
     for (int h = 0; h < n_habitats; ++h) {
-      P.suitable[base_h + static_cast<std::size_t>(h)] =
-        (SxH[base_h + static_cast<std::size_t>(h)] > 0.0) ? 1u : 0u;
+      
+      // Incoming SxH is an R species × habitat matrix flattened column-major:
+      //   index = habitat * n_species + species
+      const std::size_t sxh_idx =
+        static_cast<std::size_t>(h) *
+        static_cast<std::size_t>(n_species) +
+        static_cast<std::size_t>(sp);
+      
+      // Store internally species-major for fast downstream access:
+      //   index = species * n_habitats + habitat
+      P.suitable[
+      base_h + static_cast<std::size_t>(h)
+      ] =
+        (SxH[sxh_idx] > 0.0) ? 1u : 0u;
     }
 
     const int disp_raw = D[sp];
@@ -114,7 +141,7 @@ SpeciesPlan build_species_plan(
 
     for (std::size_t k = 0; k < cells; ++k) {
       if (SD[base_sd + k] <= 0.0) continue;
-      if (E[k] == -1) continue; 
+      if (!LM[k]) continue;
       
       P.seed_pool.push_back(static_cast<SeedT>(k));
 

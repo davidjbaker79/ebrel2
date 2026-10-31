@@ -20,7 +20,7 @@ struct SpeciesPlan {
 
   // per species ROI + settings
   std::vector<uint8_t> active;     // 0/1
-  std::vector<uint8_t> fast_path;  // 0/1 (disp_raw >= universal_disp_thres)
+  std::vector<uint8_t> fast_path;  // 1 = skip BFS connectivity within species ROI when disp_raw >= universal_disp_thres
   std::vector<int16_t> disp;       // min(disp_raw, universal_disp_thres)
   std::vector<int32_t> r0, r1, c0, c1;
   std::vector<int32_t> W, H;
@@ -64,6 +64,7 @@ SpeciesPlan build_species_plan(
     const std::vector<int16_t>& row_last_land,
     const std::vector<int16_t>& col_first_land,
     const std::vector<int16_t>& col_last_land,
+    const std::vector<uint8_t>& LM,
     const std::vector<int8_t>& E,
     const std::vector<int>& cell_r,
     const std::vector<int>& cell_c

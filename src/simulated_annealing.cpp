@@ -867,13 +867,37 @@ SAResult simulated_annealing(
       F2_history.push_back(scores.F2);
 
       // Update best
-      if (candidate_eval < best_score) {
+      const double eps_best =
+        1e-12 * (
+            1.0 +
+              std::max(
+                std::abs(best_score),
+                std::abs(candidate_eval)
+              )
+        );
+      
+      const bool better =
+        candidate_eval < best_score - eps_best;
+      
+      const bool tied =
+        std::abs(candidate_eval - best_score) <= eps_best;
+      
+      const bool replace_tied =
+        tied && (runif(rng) < 0.5);
+      
+      if (better || replace_tied) {
+        
         best = candidate;
         
-        best_score = candidate_eval;
+        // Only update the stored minimum objective value
+        // when the candidate is genuinely better.
+        if (better) {
+          best_score = candidate_eval;
+        }
+        
         best_Fx = scores.Fx;
-        best_F1    = scores.F1;
-        best_F2    = scores.F2;
+        best_F1 = scores.F1;
+        best_F2 = scores.F2;
         
         g_best = scores.g;
         g_create_best = scores.g_create;

@@ -750,158 +750,85 @@ Rcpp::List read_sa_checkpoint_R(
   return out;
  
 }
-
-// [[Rcpp::export]]
-Rcpp::IntegerMatrix build_species_suitable_R(
-    const std::vector<double>& SD,
-    const std::vector<double>& SxH,
-    const std::vector<int>& D,
-    const std::vector<double>& O,
-    const std::vector<double>& action_weight,
-    const std::vector<int>& E_int,
-    const std::vector<int>& LM_int,
-    const std::vector<int>& cell_r,
-    const std::vector<int>& cell_c,
-    const std::vector<int16_t>& row_first_land,
-    const std::vector<int16_t>& row_last_land,
-    const std::vector<int16_t>& col_first_land,
-    const std::vector<int16_t>& col_last_land,
-    int n_actions,
-    int n_species,
-    int n_habitats,
-    int dim_x,
-    int dim_y,
-    int universal_disp_thres,
-    int max_disp_steps,
-    int roi_cap
-) {
   
-  std::vector<int8_t> E(E_int.begin(), E_int.end());
-  std::vector<uint8_t> LM(LM_int.begin(), LM_int.end());
-  std::vector<float> aw(action_weight.begin(), action_weight.end());
-  
-  SpeciesPlan P = build_species_plan(
-    SD,
-    SxH,
-    D,
-    O,
-    aw,
-    n_actions,
-    n_species,
-    n_habitats,
-    dim_x,
-    dim_y,
-    universal_disp_thres,
-    max_disp_steps,
-    roi_cap,
-    row_first_land,
-    row_last_land,
-    col_first_land,
-    col_last_land,
-    LM,
-    E,
-    cell_r,
-    cell_c
-  );
-  
-  Rcpp::IntegerMatrix out(n_species, n_habitats);
-  
-  for (int sp = 0; sp < n_species; ++sp) {
-    for (int h = 0; h < n_habitats; ++h) {
-      
-      const std::size_t idx =
-        static_cast<std::size_t>(sp) *
-        static_cast<std::size_t>(n_habitats) +
-        static_cast<std::size_t>(h);
-      
-      out(sp, h) = static_cast<int>(P.suitable[idx]);
-    }
-  }
-  
-  return out;
-}
-
-// [[Rcpp::export]]
-Rcpp::IntegerMatrix check_species_suitable_cpp(
-    const std::vector<int>& E_int,
-    const std::vector<double>& C,
-    const std::vector<double>& SD,
-    const std::vector<int>& D,
-    const std::vector<double>& SxH,
-    const std::vector<double>& O,
-    const std::vector<double>& action_weight,
-    const std::vector<int>& LM_int,
-    int dim_x,
-    int dim_y,
-    int n_actions,
-    int n_species,
-    double sentinel,
-    Rcpp::List opt
-) {
-  
-  std::vector<int8_t> E(E_int.begin(), E_int.end());
-  std::vector<uint8_t> LM(LM_int.begin(), LM_int.end());
-  
-  const int universal_disp_thres =
-    opt_int(opt, "universal_disp_thres", 20);
-  
-  const int max_disp_steps =
-    opt_int(opt, "max_disp_steps", 10);
-  
-  const int roi_cap =
-    opt_int(opt, "roi_cap", 100);
-  
-  const double sigma_in =
-    opt_double(opt, "sigma_in", -1.0);
-  
-  const int n_habitats = n_actions - 1;
-  
-  std::vector<int8_t> X0_empty;
-  
-  auto built = build_ebrel(
-    std::move(E),
-    std::vector<double>(C.begin(), C.end()),
-    std::vector<double>(SD.begin(), SD.end()),
-    std::vector<int>(D.begin(), D.end()),
-    std::vector<double>(SxH.begin(), SxH.end()),
-    std::vector<double>(O.begin(), O.end()),
-    std::vector<float>(
-      action_weight.begin(),
-      action_weight.end()
-    ),
-    std::move(LM),
-    std::move(X0_empty),
-    dim_x,
-    dim_y,
-    n_actions,
-    n_species,
-    sentinel,
-    sigma_in,
-    universal_disp_thres,
-    max_disp_steps,
-    roi_cap,
-    false
-  );
-  
-  Rcpp::IntegerMatrix out(
+  // [[Rcpp::export]]
+  Rcpp::NumericVector check_compute_G_cpp(
+      const std::vector<int>& E_int,
+      const std::vector<double>& C,
+      const std::vector<double>& SD,
+      const std::vector<int>& D,
+      const std::vector<double>& SxH,
+      const std::vector<double>& O,
+      const std::vector<double>& action_weight,
+      const std::vector<int>& LM_int,
+      const std::vector<int>& X_int,
+      int dim_x,
+      int dim_y,
+      int n_actions,
+      int n_species,
+      double sentinel,
+      Rcpp::List opt
+  ) {
+    
+    std::vector<int8_t> E(E_int.begin(), E_int.end());
+    std::vector<uint8_t> LM(LM_int.begin(), LM_int.end());
+    std::vector<int8_t> X(X_int.begin(), X_int.end());
+    
+    const int universal_disp_thres =
+      opt_int(opt, "universal_disp_thres", 20);
+    
+    const int max_disp_steps =
+      opt_int(opt, "max_disp_steps", 10);
+    
+    const int roi_cap =
+      opt_int(opt, "roi_cap", 100);
+    
+    const double sigma_in =
+      opt_double(opt, "sigma_in", -1.0);
+    
+    auto built = build_ebrel(
+      std::move(E),
+      std::vector<double>(C.begin(), C.end()),
+      std::vector<double>(SD.begin(), SD.end()),
+      std::vector<int>(D.begin(), D.end()),
+      std::vector<double>(SxH.begin(), SxH.end()),
+      std::vector<double>(O.begin(), O.end()),
+      std::vector<float>(
+        action_weight.begin(),
+        action_weight.end()
+      ),
+      std::move(LM),
+      X,
+      dim_x,
+      dim_y,
+      n_actions,
       n_species,
-      n_habitats
-  );
-  
-  for (int sp = 0; sp < n_species; ++sp) {
-    for (int h = 0; h < n_habitats; ++h) {
-      
-      const std::size_t idx =
-        static_cast<std::size_t>(sp) *
-        static_cast<std::size_t>(n_habitats) +
-        static_cast<std::size_t>(h);
-      
-      out(sp, h) =
-        static_cast<int>(
-          built.in.species_plan.suitable[idx]
-        );
-    }
+      sentinel,
+      sigma_in,
+      universal_disp_thres,
+      max_disp_steps,
+      roi_cap,
+      false
+    );
+    
+    std::vector<double> G = compute_G(
+      X,
+      built.in.LM,
+      built.in.row_first_land,
+      built.in.row_last_land,
+      built.in.col_first_land,
+      built.in.col_last_land,
+      built.in.cell_r,
+      built.in.cell_c,
+      built.in.E,
+      built.in.dim_x,
+      built.in.dim_y,
+      built.in.universal_disp_thres,
+      built.in.max_disp_steps,
+      built.in.roi_cap,
+      built.in.rowruns_cache,
+      built.in.species_plan
+    );
+    
+    return Rcpp::wrap(G);
   }
-  
-  return out;
-}

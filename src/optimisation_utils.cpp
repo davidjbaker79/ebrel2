@@ -33,76 +33,148 @@ std::vector<double> compute_distance_weights(
     int dim_y,
     double sigma
 ) {
+  
   const int n_cells = dim_y * dim_x;
   std::vector<double> W(n_cells * n_habitats, 0.0);
-
+  
   // 8-neighbourhood offsets
   const int dr[8] = {-1,-1,-1, 0, 0, 1, 1, 1};
   const int dc[8] = {-1, 0, 1,-1, 1,-1, 0, 1};
-
+  
   auto idx = [n_cells](int cell, int h) {
     return h * n_cells + cell;
-    };
-
+  };
+  
   const int INF = std::numeric_limits<int>::max();
-
+  
   for (int h = 0; h < n_habitats; ++h) {
-    // Int hops for Chebyshev
+    
     std::vector<int> dist(n_cells, INF);
     std::queue<Cell> q;
-
-    // Seed with presence cells
+    
+    int n_sources = 0;
+    
+    // Seed with existing cells of habitat h
     for (int cell = 0; cell < n_cells; ++cell) {
+      
       if (E[cell] == h) {
-        int r = cell / dim_x, c = cell % dim_x;
+        
+        const int r = cell / dim_x;
+        const int c = cell % dim_x;
+        
         dist[cell] = 0;
         q.push(Cell{r, c});
+        
+        ++n_sources;
       }
     }
-
-    // BFS with unit-cost edges (diag == ortho == 1)
+    
+    // ------------------------------------------------------------------
+    // No existing habitat of this type:
+    // use a uniform proposal distribution across feasible creation cells.
+    // ------------------------------------------------------------------
+    if (n_sources == 0) {
+      
+      double total_weight = 0.0;
+      
+      for (int cell = 0; cell < n_cells; ++cell) {
+        
+        const bool unavailable =
+          (U[idx(cell, h)] != 0);
+        
+        if (unavailable) {
+          W[idx(cell, h)] = 0.0;
+        } else {
+          W[idx(cell, h)] = 1.0;
+          total_weight += 1.0;
+        }
+      }
+      
+      if (total_weight > 0.0) {
+        
+        for (int cell = 0; cell < n_cells; ++cell) {
+          
+          double& w = W[idx(cell, h)];
+          
+          if (w > 0.0) {
+            w /= total_weight;
+          }
+        }
+      }
+      
+      continue;
+    }
+    
+    // BFS with unit-cost edges
     while (!q.empty()) {
-      Cell curr = q.front(); q.pop();
-      int curr_idx = curr.row * dim_x + curr.col;
-      int curr_dist = dist[curr_idx];
-
+      
+      Cell curr = q.front();
+      q.pop();
+      
+      const int curr_idx =
+        curr.row * dim_x + curr.col;
+      
+      const int curr_dist =
+        dist[curr_idx];
+      
       for (int k = 0; k < 8; ++k) {
-        int nr = curr.row + dr[k], nc = curr.col + dc[k];
-        if (!in_bounds(nr, nc, dim_y, dim_x)) continue;
-
-        int nb = nr * dim_x + nc;
-        int new_dist = curr_dist + 1;
+        
+        const int nr = curr.row + dr[k];
+        const int nc = curr.col + dc[k];
+        
+        if (!in_bounds(nr, nc, dim_y, dim_x))
+          continue;
+        
+        const int nb =
+          nr * dim_x + nc;
+        
+        const int new_dist =
+          curr_dist + 1;
+        
         if (new_dist < dist[nb]) {
           dist[nb] = new_dist;
           q.push(Cell{nr, nc});
         }
       }
     }
-
-    // Convert to weights, mask U and E
+    
+    // Convert distances to proposal weights
     double total_weight = 0.0;
+    
     for (int cell = 0; cell < n_cells; ++cell) {
-
-      bool unavailable = (U[idx(cell, h)] != 0) || (E[cell] == h);
-
-      if (unavailable || dist[cell] == INF)  {
+      
+      const bool unavailable =
+        (U[idx(cell, h)] != 0) ||
+        (E[cell] == h);
+      
+      if (unavailable || dist[cell] == INF) {
+        
         W[idx(cell, h)] = 0.0;
+        
       } else {
-        double w = std::exp(-sigma * dist[cell]);
+        
+        const double w =
+          std::exp(-sigma * dist[cell]);
+        
         W[idx(cell, h)] = w;
         total_weight += w;
       }
     }
-
-    // Normalize column h to sum 1
+    
+    // Normalize habitat layer to sum to 1
     if (total_weight > 0.0) {
+      
       for (int cell = 0; cell < n_cells; ++cell) {
-        double& w = W[idx(cell, h)];
-        if (w > 0.0) w /= total_weight;
+        
+        double& w =
+          W[idx(cell, h)];
+        
+        if (w > 0.0)
+          w /= total_weight;
       }
     }
   }
-
+  
   return W;
 }
 

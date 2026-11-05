@@ -77,7 +77,13 @@ std::vector<double> compute_G(
 {
   // Habitat, transit and hab weight ROIS-local
   std::vector<uint8_t> transit, habitat;
-  std::vector<float> hab_weight;  // ROI-local, weight of habitat contribution
+  std::vector<float> hab_weight;
+  
+  // Baseline occupancy contribution for this species within its ROI:
+  //   0     = not observed
+  //   omega = observed in unsuitable mapped habitat
+  //   1     = observed in suitable mapped habitat
+  std::vector<float> baseline_occ;
   
   // For tracking BFS
   std::vector<uint64_t> visited_bits;
@@ -108,6 +114,41 @@ std::vector<double> compute_G(
     const std::size_t base_h = static_cast<std::size_t>(sp) * static_cast<std::size_t>(n_habitats);
     const uint8_t* suitable_h_flag = species_plan.suitable.data() + base_h;
 
+    // ---- Baseline occupancy within this species' ROI
+    baseline_occ.assign(Nroi, 0.0f);
+    
+    const uint32_t seed_start =
+      species_plan.seed_start[sp];
+    
+    const uint32_t seed_len =
+      species_plan.seed_len[sp];
+    
+    for (uint32_t t = 0; t < seed_len; ++t) {
+      
+      const uint32_t seed_idx =
+        seed_start + t;
+      
+      const std::size_t k =
+        static_cast<std::size_t>(
+          species_plan.seed_pool[seed_idx]
+        );
+      
+      const int r = cell_r[k];
+      const int c = cell_c[k];
+      
+      if (r < r0 || r > r1 ||
+          c < c0 || c > c1)
+        continue;
+      
+      const std::size_t idx =
+        static_cast<std::size_t>(r - r0) *
+        static_cast<std::size_t>(W) +
+        static_cast<std::size_t>(c - c0);
+      
+      baseline_occ[idx] =
+        species_plan.seed_weight[seed_idx];
+    }
+    
     // ---- Fast path (global dispersal) still uses ROI but no BFS
     if (species_plan.fast_path[sp]) {
       double total = 0.0;
@@ -123,9 +164,24 @@ std::vector<double> compute_G(
               hx < n_habitats &&
               suitable_h_flag[hx]) {
             
-            total += species_plan.action_weight[
+            const std::size_t idx =
+              static_cast<std::size_t>(r - r0) *
+              static_cast<std::size_t>(W) +
+              static_cast<std::size_t>(c - c0);
+            
+            const double available_fraction =
+              std::max(
+                0.0,
+                1.0 - static_cast<double>(baseline_occ[idx])
+              );
+            
+            total +=
+              static_cast<double>(
+                species_plan.action_weight[
             static_cast<std::size_t>(hx)
-            ];
+                ]
+              ) *
+                available_fraction;
           }
         }
       }
@@ -210,11 +266,17 @@ std::vector<double> compute_G(
             hmask = 1u;
             tmask = 1u;
             
-            hw = static_cast<float>(
+            const float available_fraction =
+              std::max(
+                0.0f,
+                1.0f - baseline_occ[idx]
+              );
+            
+            hw =
               species_plan.action_weight[
             static_cast<std::size_t>(hx)
-              ]
-            );
+              ] *
+                available_fraction;
           }
           
           // Unsuitable creation leaves hmask = 0 and tmask = 0:
@@ -238,8 +300,13 @@ std::vector<double> compute_G(
     }
 
     // No suitable habitat
-    if (roiH == 0) { result[sp] = 0.0; continue; }
+    if (roiH == 0) { 
+      result[sp] = 0.0; continue; 
+    }
 
+    // Accumulated reachable creation benefit for this species
+    double g_sp = 0.0;
+    
     // ---- Seed frontier from flat pool
     const uint32_t start = species_plan.seed_start[sp];
     const uint32_t len   = species_plan.seed_len[sp];
@@ -262,30 +329,6 @@ std::vector<double> compute_G(
         static_cast<std::size_t>(W) +
         static_cast<std::size_t>(c - c0);
       
-      const int hx = X[k];
-      
-      // An observed occurrence establishes this cell as a valid dispersal
-      // origin unless the selected creation action replaces it with habitat
-      // unsuitable for the species.
-      bool seed_retained = false;
-      
-      if (hx < 0) {
-        // No action: retain observed occurrence regardless of coarse E.
-        seed_retained = true;
-        
-      } else if (hx < n_habitats) {
-        // Creation action: occurrence retained only if the new habitat
-        // is suitable for this species.
-        seed_retained = suitable_h_flag[hx] != 0u;
-        
-      } else {
-        // Non-creation action, currently improvement: retain occurrence.
-        seed_retained = true;
-      }
-      
-      if (!seed_retained)
-        continue;
-      
       if (visited_test_and_set(
           idx,
           visited_bits,
@@ -293,14 +336,25 @@ std::vector<double> compute_G(
           cur_stamp))
         continue;
       
+      // If suitable habitat is created on an occupied seed cell,
+      // count only the additional contribution above baseline occupancy.
+      if (habitat[idx]) {
+        g_sp += static_cast<double>(
+          hab_weight[idx]
+        );
+      }
+      
       frontier.push_back(idx);
     }
 
     // Nowhere to go
-    if (frontier.empty()) { result[sp] = 0.0; continue; }
-
-    const RowRuns& runs = rowruns_cache[static_cast<std::size_t>(disp)];
-    double g_sp = 0.0;
+    if (frontier.empty()) {
+      result[sp] = 0.0;
+      continue;
+    }
+    
+    const RowRuns& runs =
+      rowruns_cache[static_cast<std::size_t>(disp)];
 
     for (int step = 0; !frontier.empty() && (max_disp_steps <= 0 || step < max_disp_steps); ++step) {
       next.clear();

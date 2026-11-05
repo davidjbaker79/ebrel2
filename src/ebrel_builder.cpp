@@ -36,6 +36,7 @@ BuiltEBREL build_ebrel(
     std::vector<float>   action_weight,
     std::vector<uint8_t> LM,
     std::vector<int8_t>  X0,
+    double marginal_occupancy_weight,
     int dim_x,
     int dim_y,
     int n_actions,
@@ -155,17 +156,28 @@ BuiltEBREL build_ebrel(
   
   // ---- species plan ----
   b.in.species_plan = build_species_plan(
-    b.in.SD, b.in.SxH, b.in.D, b.in.O, b.in.action_weight,
-    n_actions, n_species, n_habitats, 
-    dim_x, dim_y,
+    b.in.SD,
+    b.in.SxH,
+    b.in.D,
+    b.in.O,
+    b.in.action_weight,
+    marginal_occupancy_weight,
+    n_actions,
+    n_species,
+    n_habitats,
+    dim_x,
+    dim_y,
     b.in.universal_disp_thres,
     b.in.max_disp_steps,
     b.in.roi_cap,
-    b.in.row_first_land, b.in.row_last_land,
-    b.in.col_first_land, b.in.col_last_land,
+    b.in.row_first_land,
+    b.in.row_last_land,
+    b.in.col_first_land,
+    b.in.col_last_land,
     b.in.LM,
     b.in.E,
-    b.in.cell_r, b.in.cell_c
+    b.in.cell_r,
+    b.in.cell_c
   );
   
   // ---- Initialise improve_count ----

@@ -241,6 +241,8 @@ Rcpp::List run_ebrel_cpp(
   const int    max_disp_steps       = opt_int(opt, "max_disp_steps", 10);
   const int    roi_cap              = opt_int(opt, "roi_cap", 100);
   const bool   precompute_W         = opt_bool(opt, "precompute_W", true);
+  const double marginal_occupancy_weight = 
+    opt_double(opt, "marginal_occupancy_weight", 0.25);
   
   // ---- Sigma_in: NA / missing => compute default in C++ ----
   const double sigma_in = opt_double(opt, "sigma_in", -1);
@@ -286,6 +288,7 @@ Rcpp::List run_ebrel_cpp(
     std::vector<float>(action_weight.begin(), action_weight.end()), 
     std::move(LM),
     std::move(X0_seed),
+    marginal_occupancy_weight,
     dim_x, dim_y, 
     n_actions,
     n_species,
@@ -647,6 +650,8 @@ Rcpp::List run_ebrel_cpp(
         Rcpp::Named("gamma") = built.in.gamma,
         Rcpp::Named("delta") = built.in.delta
       ),
+      Rcpp::Named("marginal_occupancy_weight") =
+        built.in.species_plan.marginal_occupancy_weight,
       Rcpp::Named("objective_calibration") =
         calibration_diag,
       Rcpp::Named("temperature_tuning") = tune_diag
@@ -786,6 +791,13 @@ Rcpp::List read_sa_checkpoint_R(
     const double sigma_in =
       opt_double(opt, "sigma_in", -1.0);
     
+    const double marginal_occupancy_weight =
+      opt_double(
+        opt,
+        "marginal_occupancy_weight",
+        0.25
+      );
+    
     auto built = build_ebrel(
       std::move(E),
       std::vector<double>(C.begin(), C.end()),
@@ -799,6 +811,7 @@ Rcpp::List read_sa_checkpoint_R(
       ),
       std::move(LM),
       X,
+      marginal_occupancy_weight,
       dim_x,
       dim_y,
       n_actions,

@@ -26,6 +26,7 @@ BuiltEBREL build_ebrel(
     std::vector<float>   action_weight, // size: n_actions
     std::vector<uint8_t> LM,   // size: n_cells
     std::vector<int8_t>  X0,
+    double marginal_occupancy_weight,
     int dim_x,
     int dim_y,
     int n_actions,

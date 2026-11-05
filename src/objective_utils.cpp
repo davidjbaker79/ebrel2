@@ -30,14 +30,6 @@ namespace {
     return P.suitable[suitable_idx(P, sp, h)] != 0u;
   }
 
-  // SeedT is presumably uint32_t or similar; adapt if needed.
-  inline const SeedT* seed_begin(const SpeciesPlan& P, int sp) {
-    return P.seed_pool.data() + P.seed_start[sp];
-  }
-  inline const SeedT* seed_end(const SpeciesPlan& P, int sp) {
-    return P.seed_pool.data() + P.seed_start[sp] + P.seed_len[sp];
-  }
-
   // For Euclidean distance
   inline int row_of(std::size_t tile, int dim_x) {
     return static_cast<int>(tile / static_cast<std::size_t>(dim_x));
@@ -49,27 +41,78 @@ namespace {
   }
 
   // Compute discounted seeds
-  inline int compute_m_i_from_plan(
+  inline double compute_m_i_from_plan(
       int sp,
       const SpeciesPlan& species_plan,
-      const std::vector<int8_t>& X) 
+      const std::vector<int8_t>& X,
+      const std::vector<int8_t>& E)
   {
-    int m_i = 0;
+    double m_i = 0.0;
     
-    const SeedT* b = seed_begin(species_plan, sp);
-    const SeedT* e = seed_end(species_plan, sp);
+    const double omega =
+      species_plan.marginal_occupancy_weight;
     
-    for (const SeedT* it = b; it != e; ++it) {
-      const std::size_t k = static_cast<std::size_t>(*it);
+    const uint32_t start =
+      species_plan.seed_start[static_cast<std::size_t>(sp)];
+    
+    const uint32_t len =
+      species_plan.seed_len[static_cast<std::size_t>(sp)];
+    
+    for (uint32_t j = 0; j < len; ++j) {
+      
+      const std::size_t seed_idx =
+        static_cast<std::size_t>(start + j);
+      
+      const std::size_t k =
+        static_cast<std::size_t>(
+          species_plan.seed_pool[seed_idx]
+        );
+      
+      const double baseline_w =
+        static_cast<double>(
+          species_plan.seed_weight[seed_idx]
+        );
+      
+      const int he = E[k];
       const int hx = X[k];
       
+      const bool existing_suitable =
+        he >= 0 &&
+        he < species_plan.n_habitats &&
+        is_suitable(species_plan, sp, he);
+      
       if (hx < 0) {
-        ++m_i;                       // no action
+        
+        // No action: retain baseline occupancy.
+        m_i += baseline_w;
+        
       } else if (hx < species_plan.n_habitats) {
-        if (is_suitable(species_plan, sp, hx)) ++m_i;   // creation to suitable habitat
-        // else lost through unsuitable creation
+        
+        const bool new_suitable =
+          is_suitable(species_plan, sp, hx);
+        
+        if (existing_suitable) {
+          
+          if (new_suitable) {
+            // Suitable main habitat replaced by another suitable habitat:
+            // cell remains fully occupied.
+            m_i += 1.0;
+          } else {
+            // Suitable main habitat lost, but marginal/sub-grid habitat remains.
+            m_i += omega;
+          }
+          
+        } else {
+          
+          // Species was initially supported only by marginal/sub-grid habitat.
+          // That marginal occupancy survives conversion of the mapped main habitat.
+          m_i += omega;
+        }
+        
       } else {
-        ++m_i;                       // non-creation action, e.g. improvement
+        
+        // Improvement: retain baseline occupancy.
+        m_i += baseline_w;
       }
     }
     
@@ -260,11 +303,14 @@ HResult compute_H(const std::vector<int8_t>& X,
     ++n_target_species;
     
     const double m0 =
-      static_cast<double>(species_plan.seed_len[spi]);
+    species_plan.seed_weight_sum[spi];
     
     const double kept =
-      static_cast<double>(
-        compute_m_i_from_plan(spi, species_plan, X)
+      compute_m_i_from_plan(
+        sp,
+        species_plan,
+        X,
+        E
       );
     
     const double lost = m0 - kept;
